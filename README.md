@@ -55,6 +55,11 @@ audio codecs flac, opus, and vorbis, and the video codecs vp9 and vp8.
 
 ## Limitations
 
+Parts of the API outside of the main classes are not modified. In particular,
+LibAVJS-WebCodecs-Polyfill makes no attempt to replace
+`CanvasRenderingContext2D.drawImage` or otherwise give it the capability to
+draw `VideoFrame`s.
+
 libav.js is surprisingly fast for what it is, but it ain't fast. All audio
 codecs work fine, but video struggles. libav.js also currently doesn't support
 multithreading, so every encoder/decoder is single-threaded. But, multiple
