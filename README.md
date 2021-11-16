@@ -4,7 +4,8 @@ This is a polyfill for the [WebCodecs API](https://w3c.github.io/webcodecs/).
 
 No, really.
 
-Right now, it only supports decoding, but that's changing fast.
+Right now, it only supports decoding, but that's changing fast. Note however
+that there are no plans to implement image formats, only video and audio.
 
 It implements WebCodecs through
 [libav.js](https://github.com/Yahweasel/libav.js/), which is a port of
@@ -51,6 +52,11 @@ LibAVJS-WebCodecs-Polyfill should be up to date with revision `d920a2cb7`
 
 Depending on the libav.js version used, LibAVJS-WebCodecs-Polyfill supports the
 audio codecs flac, opus, and vorbis, and the video codecs vp9 and vp8.
+
+FFmpeg supports many codecs, and it's generally easy to add new codecs to
+libav.js and LibAVJS-WebCodecs-Polyfill. However, there are no plans to add any
+codecs by the Misanthropic Patent Extortion Gang (MPEG), so the only useful
+codec not presently supported is AV1.
 
 
 ## Limitations
