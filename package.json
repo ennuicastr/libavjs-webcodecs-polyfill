@@ -7,9 +7,25 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ennuicastr/libavjs-webcodecs-polyfill.git"
+  },
+  "keywords": [
+    "webcodecs",
+    "ffmpeg",
+    "audio",
+    "video",
+    "encoding",
+    "decoding"
+  ],
   "author": "Yahweasel",
   "license": "0BSD",
-  "dependencies": {
+  "bugs": {
+    "url": "https://github.com/ennuicastr/libavjs-webcodecs-polyfill/issues"
+  },
+  "homepage": "https://github.com/ennuicastr/libavjs-webcodecs-polyfill#readme",
+  "devDependencies": {
     "browserify": "^17.0.0",
     "libav.js": "^3.2.4",
     "tinyify": "^3.0.0",
