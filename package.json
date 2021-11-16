@@ -1,0 +1,17 @@
+{
+  "name": "libavjs-webcodecs-ponyfill",
+  "version": "1.0.0",
+  "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
+  "main": "libavjs-webcodecs-polyfill.min.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Yahweasel",
+  "license": "0BSD",
+  "dependencies": {
+    "browserify": "^17.0.0",
+    "libav.js": "^3.2.4",
+    "tinyify": "^3.0.0",
+    "tsify": "^5.0.4"
+  }
+}
