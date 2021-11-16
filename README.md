@@ -12,7 +12,7 @@ It implements WebCodecs through
 
 To use it, simply include libav.js then this library, and then call and `await`
 `LibAVWebCodecs.load()`. `load` takes an optional `options` parameter, which is
-an object, currently only supporting one option:
+an object:
 
 ```
 options: {
