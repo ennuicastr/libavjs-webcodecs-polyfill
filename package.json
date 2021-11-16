@@ -1,5 +1,5 @@
 {
-  "name": "libavjs-webcodecs-ponyfill",
+  "name": "libavjs-webcodecs-polyfill",
   "version": "0.0.1",
   "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
   "main": "libavjs-webcodecs-polyfill.min.js",
