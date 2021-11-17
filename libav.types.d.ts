@@ -42,7 +42,7 @@ export interface Frame {
      * Audio only. Channel layout. It is possible for only one of this and
      * channels to be set.
      */
-    channel_layout: number;
+    channel_layout?: number;
 
     /**
      * Audio only. Number of channels. It is possible for only one of this and
@@ -329,6 +329,10 @@ AVCodecContext_channel_layouthi(ptr: number): Promise<number>;
 AVCodecContext_channel_layouthi_s(ptr: number, val: number): Promise<void>;
 AVCodecContext_channels(ptr: number): Promise<number>;
 AVCodecContext_channels_s(ptr: number, val: number): Promise<void>;
+AVCodecContext_extradata(ptr: number): Promise<number>;
+AVCodecContext_extradata_s(ptr: number, val: number): Promise<void>;
+AVCodecContext_extradata_size(ptr: number): Promise<number>;
+AVCodecContext_extradata_size_s(ptr: number, val: number): Promise<void>;
 AVCodecContext_frame_size(ptr: number): Promise<number>;
 AVCodecContext_frame_size_s(ptr: number, val: number): Promise<void>;
 AVCodecContext_gop_size(ptr: number): Promise<number>;
@@ -363,6 +367,8 @@ AVCodecParameters_codec_type(ptr: number): Promise<number>;
 AVCodecParameters_codec_type_s(ptr: number, val: number): Promise<void>;
 AVCodecParameters_extradata(ptr: number): Promise<number>;
 AVCodecParameters_extradata_s(ptr: number, val: number): Promise<void>;
+AVCodecParameters_extradata_size(ptr: number): Promise<number>;
+AVCodecParameters_extradata_size_s(ptr: number, val: number): Promise<void>;
 AVPacket_pts(ptr: number): Promise<number>;
 AVPacket_pts_s(ptr: number, val: number): Promise<void>;
 AVPacket_ptshi(ptr: number): Promise<number>;
@@ -670,6 +676,11 @@ ff_malloc_int32_list(list: number[]): Promise<number>;
  */
 ff_malloc_int64_list(list: number[]): Promise<number>;
 
+
+    /**
+     * Callback when writes occur. Set by the user.
+     */
+    onwrite?: (filename: string, position: number, buffer: Uint8Array | Int8Array) => void;
 
     /**
      * Terminate the worker associated with this libav.js instance, rendering

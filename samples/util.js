@@ -9,10 +9,7 @@ async function sampleDemux(filename, suffix) {
     return [streams, packets];
 }
 
-async function sampleMux(filename, codec, packets) {
-    const libav = await LibAV.LibAV({noworker: true});
-    let [, c, pkt, frame] = await libav.ff_init_decoder(codec);
-    await libav.AVCodecContext_time_base_s(c, 1, 1000);
+async function sampleMux(filename, codec, packets, extradata) {
     const libavPackets = [];
     for (const packet of packets) {
         const ab = new ArrayBuffer(packet.byteLength);
@@ -24,7 +21,22 @@ async function sampleMux(filename, codec, packets) {
             dts: pts, dtshi: 0
         });
     }
+
+    const libav = await LibAV.LibAV({noworker: true});
+
+    /* Decode a little bit (and use extradata) just to make sure everything
+     * necessary for a header is in place */
+    let [, c, pkt, frame] = await libav.ff_init_decoder(codec);
+    await libav.AVCodecContext_time_base_s(c, 1, 1000);
     await libav.ff_decode_multi(c, pkt, frame, [libavPackets[0]]);
+    if (extradata) {
+        const extradataPtr = await libav.malloc(extradata.length);
+        await libav.copyin_u8(extradataPtr, extradata);
+        await libav.AVCodecContext_extradata_s(c, extradataPtr);
+        await libav.AVCodecContext_extradata_size_s(c, extradata.length);
+    }
+
+    // Now mux it
     const [oc, , pb] = await libav.ff_init_muxer(
         {filename, open: true}, [[c, 1, 1000]]);
     await libav.avformat_write_header(oc, 0);

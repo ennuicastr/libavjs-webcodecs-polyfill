@@ -19,8 +19,13 @@
     // Then encode it as Opus
     async function encode(AudioEncoder, AudioData) {
         const packets = [];
+        let extradata = null;
         const encoder = new AudioEncoder({
-            output: packet => packets.push(packet),
+            output: (packet, metadata) => {
+                packets.push(packet);
+                if (metadata && !extradata)
+                    extradata = new Uint8Array(metadata.buffer || metadata);
+            },
             error: x => alert(x)
         });
         encoder.configure({
@@ -46,7 +51,7 @@
         await encoder.flush();
         encoder.close();
 
-        const opus = await sampleMux("tmp.webm", "libopus", packets);
+        const opus = await sampleMux("tmp.webm", "libopus", packets, extradata);
         const audio = document.createElement("audio");
         audio.src = URL.createObjectURL(new Blob([opus]));
         audio.controls = true;

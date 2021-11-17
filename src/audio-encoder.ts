@@ -57,6 +57,8 @@ export class AudioEncoder {
     private _frame: number;
     private _pkt: number;
     private _pts: number;
+    private _extradataSet: boolean;
+    private _extradata: Uint8Array;
     private _filter_in_ctx: LibAVJS.FilterIOSettings;
     private _filter_out_ctx: LibAVJS.FilterIOSettings;
     private _filter_graph: number;
@@ -132,6 +134,8 @@ export class AudioEncoder {
                 [self._codec, self._c, self._frame, self._pkt, frame_size] =
                     await libav.ff_init_encoder(codec, {ctx});
                 self._pts = 0;
+                self._extradataSet = false;
+                self._extradata = null;
                 await libav.AVCodecContext_time_base_s(self._c, 1, ctx.sample_rate);
 
                 // Be ready to set up the filter
@@ -337,6 +341,8 @@ export class AudioEncoder {
                     await libav.ff_encode_multi(c, framePtr, pkt, fframes);
                 if (preOutputs)
                     encodedOutputs = preOutputs.concat(encodedOutputs);
+                if (encodedOutputs.length && !self._extradataSet)
+                    await self._getExtradata();
 
             /* 2. If encoding results in an error, queue a task on the control
              * thread event loop to run the Close AudioEncoder algorithm with
@@ -375,6 +381,17 @@ export class AudioEncoder {
         return fframes;
     }
 
+    // Internal: Get extradata
+    private async _getExtradata() {
+        const libav = this._libav;
+        const c = this._c;
+        const extradata = await libav.AVCodecContext_extradata(c);
+        const extradata_size = await libav.AVCodecContext_extradata_size(c);
+        if (extradata && extradata_size)
+            this._extradata = await libav.copyout_u8(extradata, extradata_size);
+        this._extradataSet = true;
+    }
+
     private _outputEncodedAudioChunks(packets: LibAVJS.Packet[]) {
         const libav = this._libav;
         const sampleRate = this._filter_out_ctx.sample_rate;
@@ -393,7 +410,10 @@ export class AudioEncoder {
                 data: packet.data
             });
 
-            this._output(chunk);
+            if (this._extradata)
+                this._output(chunk, this._extradata);
+            else
+                this._output(chunk);
         }
     }
 
@@ -421,6 +441,8 @@ export class AudioEncoder {
                 encodedOutputs =
                     await libav.ff_encode_multi(c, frame, pkt, fframes || [],
                         true);
+                if (!self._extradataSet)
+                    await self._getExtradata();
             } catch (ex) {
                 self._p = self._p.then(() => {
                     self._closeAudioEncoder(ex);
@@ -457,8 +479,8 @@ export interface AudioEncoderInit {
     error: misc.WebCodecsErrorCallback;
 }
 
-// NOTE: Metadata is not used by any of our codecs, so not included here
-export type EncodedAudioChunkOutputCallback = (output: eac.EncodedAudioChunk) => void;
+export type EncodedAudioChunkOutputCallback =
+    (output: eac.EncodedAudioChunk, metadata?: BufferSource) => void;
 
 export interface AudioEncoderConfig {
     codec: string;
