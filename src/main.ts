@@ -20,6 +20,7 @@
 import * as eac from "./encoded-audio-chunk";
 import * as ad from "./audio-data";
 import * as adec from "./audio-decoder";
+import * as aenc from "./audio-encoder";
 
 import * as evc from "./encoded-video-chunk";
 import * as vf from "./video-frame";
@@ -65,7 +66,7 @@ export async function load(options: {
 
     if (options.polyfill) {
         for (const exp of [
-            "EncodedAudioChunk", "AudioData", "AudioDecoder",
+            "EncodedAudioChunk", "AudioData", "AudioDecoder", "AudioEncoder",
             "EncodedVideoChunk", "VideoFrame", "VideoDecoder"
         ]) {
             if (!window[exp])
@@ -154,6 +155,14 @@ export type AudioDecoderInit = adec.AudioDecoderInit;
 export type AudioDataOutputCallback = adec.AudioDataOutputCallback;
 export type AudioDecoderConfig = adec.AudioDecoderConfig;
 export type AudioDecoderSupport = adec.AudioDecoderSupport;
+
+// AudioEncoder
+export type AudioEncoder = aenc.AudioEncoder;
+export const AudioEncoder = aenc.AudioEncoder;
+export type AudioEncoderInit = aenc.AudioEncoderInit;
+export type EncodedAudioChunkOutputCallback = aenc.EncodedAudioChunkOutputCallback;
+export type AudioEncoderConfig = aenc.AudioEncoderConfig;
+export type AudioEncoderSupport = aenc.AudioEncoderSupport;
 
 // EncodedVideoChunk
 export type EncodedVideoChunk = evc.EncodedVideoChunk;

@@ -187,27 +187,27 @@ export interface FilterIOSettings {
  * Supported properties of an AVCodecContext, used by ff_init_encoder.
  */
 export interface AVCodecContextProps {
-    bit_rate: number,
-    bit_ratehi: number,
-    channel_layout: number,
-    channel_layouthi: number,
-    channels: number,
-    frame_size: number,
-    framerate_num: number,
-    framerate_den: number,
-    gop_size: number,
-    height: number,
-    keyint_min: number,
-    pix_fmt: number,
-    rc_max_rate: number,
-    rc_max_ratehi: number,
-    rc_min_rate: number,
-    rc_min_ratehi: number,
-    sample_fmt: number,
-    sample_rate: number,
-    qmax: number,
-    qmin: number,
-    width: number
+    bit_rate?: number,
+    bit_ratehi?: number,
+    channel_layout?: number,
+    channel_layouthi?: number,
+    channels?: number,
+    frame_size?: number,
+    framerate_num?: number,
+    framerate_den?: number,
+    gop_size?: number,
+    height?: number,
+    keyint_min?: number,
+    pix_fmt?: number,
+    rc_max_rate?: number,
+    rc_max_ratehi?: number,
+    rc_min_rate?: number,
+    rc_min_ratehi?: number,
+    sample_fmt?: number,
+    sample_rate?: number,
+    qmax?: number,
+    qmin?: number,
+    width?: number
 }
 
 export interface LibAV {
@@ -466,8 +466,8 @@ ff_reader_dev_send(name: string, data: Uint8Array): Promise<void>;
  * @param opts  Encoder options
  */
 ff_init_encoder(
-    name: string, opts: {
-        ctx: AVCodecContextProps, options: Record<string, string>
+    name: string, opts?: {
+        ctx?: AVCodecContextProps, options?: Record<string, string>
     }
 ): Promise<[number, number, number, number, number]>;
 /**
@@ -535,11 +535,11 @@ ff_decode_multi(
  */
 ff_init_muxer(
     opts: {
-        oformat: number, // format pointer
-        format_name: string, // libav name
-        filename: string,
-        device: boolean, // Create a writer device
-        open: boolean // Open the file for writing
+        oformat?: number, // format pointer
+        format_name?: string, // libav name
+        filename?: string,
+        device?: boolean, // Create a writer device
+        open?: boolean // Open the file for writing
     },
     streamCtxs: [number, number, number][] // AVCodecContext, time_base_num, time_base_den
 ): Promise<[number, number, number, number[]]>;

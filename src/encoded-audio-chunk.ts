@@ -35,7 +35,7 @@ export class EncodedAudioChunk {
     private _data: Uint8Array;
 
     // Internal
-    libavGetData() { return this._data; }
+    _libavGetData() { return this._data; }
 
     copyTo(destination: BufferSource) {
         (new Uint8Array((<any> destination).buffer || destination)).set(this._data);
@@ -50,6 +50,6 @@ export interface EncodedAudioChunkInit {
 }
 
 export const enum EncodedAudioChunkType {
-    Key = "key",
-    Delta = "delta"
+    KEY = "key",
+    DELTA = "delta"
 }

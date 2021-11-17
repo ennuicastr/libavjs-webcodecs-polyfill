@@ -6,50 +6,11 @@
     const videoPackets = allPackets[videoStream.index];
     const audioPackets = allPackets[audioStream.index];
 
-    async function decodeAudio(AudioDecoder, EncodedAudioChunk) {
-        // Feed them into the decoder
-        const frames = [];
-        const decoder = new AudioDecoder({
-            output: frame => frames.push(frame),
-            error: x => alert(x)
-        });
-        decoder.configure({
-            codec: "opus",
-            sampleRate: 48000,
-            numberOfChannels: 1
-        });
-        for (const packet of audioPackets) {
-            let pts = packet.ptshi * 0x100000000 + packet.pts;
-            if (pts < 0)
-                pts = 0;
-            const ts = Math.round(
-                pts * audioStream.time_base_num / audioStream.time_base_den *
-                1000000);
-            decoder.decode(new EncodedAudioChunk({
-                type: "key",
-                timestamp: ts,
-                data: packet.data
-            }));
-        }
-
-        // Wait for it to finish
-        await decoder.flush();
-        decoder.close();
-
-        // And output
-        const out = [];
-        const opts = {
-            planeIndex: 0,
-            format: "f32-planar"
-        };
-        for (const frame of frames) {
-            const ab = new ArrayBuffer(frame.allocationSize(opts));
-            frame.copyTo(ab, opts);
-            out.push(new Float32Array(ab));
-        }
-
-        return out;
-    }
+    const audioInit = {
+        codec: "opus",
+        sampleRate: 48000,
+        numberOfChannels: 1
+    };
 
     async function decodeVideo(VideoDecoder, EncodedVideoChunk) {
         // Feed them into the decoder
@@ -60,8 +21,8 @@
         });
         decoder.configure({
             codec: "vp8",
-            codedWidth: 640,
-            codedHeight: 360
+            codedWidth: 1920,
+            codedHeight: 1080
         });
         for (const packet of videoPackets) {
             let pts = packet.ptshi * 0x100000000 + packet.pts;
@@ -85,10 +46,13 @@
     }
 
     const a = await decodeAudio(
-        LibAVWebCodecs.AudioDecoder, LibAVWebCodecs.EncodedAudioChunk);
+        audioInit, audioPackets, audioStream, LibAVWebCodecs.AudioDecoder,
+        LibAVWebCodecs.EncodedAudioChunk);
     let b = null;
     if (typeof AudioDecoder !== "undefined")
-        b = await decodeAudio(AudioDecoder, EncodedAudioChunk);
+        b = await decodeAudio(
+            audioInit, audioPackets, audioStream, AudioDecoder,
+            EncodedAudioChunk);
     const c = await decodeVideo(
         LibAVWebCodecs.VideoDecoder, LibAVWebCodecs.EncodedVideoChunk);
     let d = null;

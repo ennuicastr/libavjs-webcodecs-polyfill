@@ -41,6 +41,9 @@ export class AudioData {
 
     private _data: AudioTypedArray;
 
+    // Internal
+    _libavGetData() { return this._data; }
+
     allocationSize(options: AudioDataCopyToOptions): number {
         // 1. If [[Detached]] is true, throw an InvalidStateError DOMException.
         if (this._data === null)
@@ -337,7 +340,7 @@ switch (format) {
  * Is this format interleaved?
  * @param format  Sample format
  */
-function isInterleaved(format: AudioSampleFormat) {
+export function isInterleaved(format: AudioSampleFormat) {
     switch (format) {
         case AudioSampleFormat.U8:
         case AudioSampleFormat.S16:
@@ -352,6 +355,6 @@ function isInterleaved(format: AudioSampleFormat) {
             return false;
 
         default:
-            return new TypeError("Invalid AudioSampleFormat");
+            throw new TypeError("Invalid AudioSampleFormat");
     }
 }

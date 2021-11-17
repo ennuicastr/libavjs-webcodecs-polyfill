@@ -101,6 +101,7 @@ export class AudioDecoder {
                 // And initialize
                 [self._codec, self._c, self._pkt, self._frame] =
                     await libav.ff_init_decoder(codec);
+                await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
             }
 
             /* 3. Otherwise, run the Close AudioDecoder algorithm with
@@ -186,8 +187,8 @@ export class AudioDecoder {
                 const ptsFull = Math.floor(chunk.timestamp / 1000);
                 const pts = ptsFull % 0x100000000;
                 const ptshi = ~~(ptsFull / 0x100000000);
-                const packet: any = {
-                    data: chunk.libavGetData(),
+                const packet: LibAVJS.Packet = {
+                    data: chunk._libavGetData(),
                     pts,
                     ptshi,
                     dts: pts,
@@ -281,7 +282,7 @@ export class AudioDecoder {
             // 4. numberOfChannels
             const numberOfChannels = frame.channels;
 
-            // 5. timestamp (FIXME)
+            // 5. timestamp
             const timestamp = (frame.ptshi * 0x100000000 + frame.pts) * 1000;
 
             // 6. data
