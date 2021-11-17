@@ -85,7 +85,7 @@ async function decodeAudio(
         format: "f32-planar"
     };
     for (const frame of frames) {
-        const ab = new ArrayBuffer(frame.allocationSize(opts));
+        const ab = new ArrayBuffer(frame.allocationSize(copyOpts));
         frame.copyTo(ab, copyOpts);
         out.push(new Float32Array(ab));
     }
