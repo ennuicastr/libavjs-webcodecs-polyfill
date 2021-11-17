@@ -1,6 +1,6 @@
 {
   "name": "libavjs-webcodecs-polyfill",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
   "main": "libavjs-webcodecs-polyfill.min.js",
   "types": "src/main.ts",

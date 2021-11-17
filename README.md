@@ -4,8 +4,9 @@ This is a polyfill for the [WebCodecs API](https://w3c.github.io/webcodecs/).
 
 No, really.
 
-Right now, it only supports decoding, but that's changing fast. Note however
-that there are no plans to implement image formats, only video and audio.
+Right now, it supports decoding and audio encoding, but video encoding is
+coming soon. Note however that there are no plans to implement image formats,
+only video and audio.
 
 It implements WebCodecs through
 [libav.js](https://github.com/Yahweasel/libav.js/), which is a port of
