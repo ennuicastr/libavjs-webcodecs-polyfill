@@ -51,7 +51,9 @@ LibAVJS-WebCodecs-Polyfill should be up to date with revision `d920a2cb7`
 (2021-11-10) of the WebCodecs specification.
 
 Depending on the libav.js version used, LibAVJS-WebCodecs-Polyfill supports the
-audio codecs flac, opus, and vorbis, and the video codecs vp9 and vp8.
+audio codecs flac, opus, and vorbis, and the video codecs vp9 and vp8. The
+`webm-opus-flac` variant, which LibAVJS-WebCodecs-Polyfill uses if no libav.js
+is loaded, supports flac, opus, and vp8.
 
 FFmpeg supports many codecs, and it's generally easy to add new codecs to
 libav.js and LibAVJS-WebCodecs-Polyfill. However, there are no plans to add any
