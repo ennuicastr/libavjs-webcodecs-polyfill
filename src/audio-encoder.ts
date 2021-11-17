@@ -158,7 +158,6 @@ export class AudioEncoder {
 
     // Our own algorithm, close libav
     private async _free() {
-        /*
         if (this._filter_graph) {
             await this._libav.avfilter_graph_free(this._filter_graph);
             this._filter_in_ctx = this._filter_out_ctx = null;
@@ -169,7 +168,6 @@ export class AudioEncoder {
             await this._libav.ff_free_encoder(this._c, this._frame, this._pkt);
             this._codec = this._c = this._frame = this._pkt = 0;
         }
-        */
         if (this._libav) {
             libavs.free(this._libav);
             this._libav = null;
