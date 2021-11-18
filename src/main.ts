@@ -137,6 +137,37 @@ export async function getVideoDecoder(
     return null;
 }
 
+/**
+ * Get an AudioEncoder environment that supports this configuration.
+ * @param config  Audio encoder configuration
+ */
+export async function getAudioEncoder(
+    config: aenc.AudioEncoderConfig
+): Promise<{
+    AudioEncoder: typeof aenc.AudioEncoder,
+    EncodedAudioChunk: typeof eac.EncodedAudioChunk,
+    AudioData: typeof ad.AudioData
+}> {
+    if (typeof (<any> window).AudioEncoder !== "undefined" &&
+        (await (<any> window).AudioEncoder.isConfigSupported(config)).supported) {
+        return {
+            AudioEncoder: (<any> window).AudioEncoder,
+            EncodedAudioChunk: (<any> window).EncodedAudioChunk,
+            AudioData: (<any> window).AudioData
+        };
+    }
+
+    if ((await aenc.AudioEncoder.isConfigSupported(config)).supported) {
+        return {
+            AudioEncoder: aenc.AudioEncoder,
+            EncodedAudioChunk: eac.EncodedAudioChunk,
+            AudioData: ad.AudioData
+        };
+    }
+
+    return null;
+}
+
 // EncodedAudioChunk
 export type EncodedAudioChunk = eac.EncodedAudioChunk;
 export const EncodedAudioChunk = eac.EncodedAudioChunk;
