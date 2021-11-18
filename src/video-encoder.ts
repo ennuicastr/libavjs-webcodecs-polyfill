@@ -286,11 +286,12 @@ export class VideoEncoder {
                     data: raw,
                     format, pts, ptshi,
                     width: frameClone.codedWidth,
-                    height: frameClone.codedHeight
+                    height: frameClone.codedHeight,
+                    key_frame: options.keyFrame ? 1 : 0,
+                    pict_type: options.keyFrame ? 1 : 0
                 };
 
                 // And encode
-                // FIXME: options.keyFrame
                 encodedOutputs =
                     await libav.ff_encode_multi(c, framePtr, pkt, [frame]);
                 if (encodedOutputs.length && !self._extradataSet)

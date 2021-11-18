@@ -90,6 +90,3 @@ LibAVJS-WebCodecs-Polyfill always lets the event queue finish.
 The framerate reported to video codecs is the nearest whole number to the input
 framerate. This should usually only affect bitrate and latency calculations, as
 each frame is individually timestamped.
-
-The `options` parameter of `VideoEncoder.encode`, which should allow insisting
-on I-frames, is not supported.
