@@ -25,6 +25,6 @@ export const EncodedVideoChunk = eac.EncodedAudioChunk;
 export type EncodedVideoChunkInit = eac.EncodedAudioChunkInit;
 
 export const enum EncodedVideoChunkType {
-    Key = "key",
-    Delta = "delta"
+    KEY = "key",
+    DELTA = "delta"
 }

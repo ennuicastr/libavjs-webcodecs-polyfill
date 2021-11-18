@@ -73,7 +73,7 @@ export class AudioEncoder {
 
         // 2. If [[state]] is "closed", throw an InvalidStateError.
         if (this.state === misc.CodecState.CLOSED)
-            throw new DOMException("Decoder is closed", "InvalidStateError");
+            throw new DOMException("Encoder is closed", "InvalidStateError");
 
         // Free any internal state
         if (this._libav)
@@ -195,7 +195,7 @@ export class AudioEncoder {
     private _resetAudioEncoder(exception: DOMException) {
         // 1. If [[state]] is "closed", throw an InvalidStateError.
         if (this.state === misc.CodecState.CLOSED)
-            throw new DOMException("Decoder closed", "InvalidStateError");
+            throw new DOMException("Encoder closed", "InvalidStateError");
 
         // 2. Set [[state]] to "unconfigured".
         this.state = misc.CodecState.UNCONFIGURED;

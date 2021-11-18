@@ -119,6 +119,9 @@ export class VideoFrame {
     private _layout: PlaneLayout[];
     private _data: Uint8Array;
 
+    // Internal
+    _libavGetData() { return this._data; }
+
     allocationSize(options: VideoFrameCopyToOptions = {}): number {
         // 1. If [[Detached]] is true, throw an InvalidStateError DOMException.
         if (this._data === null)
