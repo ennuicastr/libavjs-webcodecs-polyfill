@@ -22,7 +22,7 @@ import * as eac from "./encoded-audio-chunk";
 import * as libavs from "./libav";
 import * as misc from "./misc";
 
-import type * as LibAVJS from "../libav.types";
+import type * as LibAVJS from "libav.js";
 
 export class AudioDecoder {
     constructor(init: AudioDecoderInit) {

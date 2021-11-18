@@ -25,11 +25,12 @@ import * as aenc from "./audio-encoder";
 import * as evc from "./encoded-video-chunk";
 import * as vf from "./video-frame";
 import * as vdec from "./video-decoder";
+import * as venc from "./video-encoder";
 
 import * as libav from "./libav";
 import * as misc from "./misc";
 
-import type * as LibAVJS from "../libav.types";
+import type * as LibAVJS from "libav.js";
 declare let LibAV: LibAVJS.LibAVWrapper;
 
 /**
@@ -51,9 +52,9 @@ export async function load(options: {
             libavOptions.noworker = true;
 
             // Load libav
-            LibAV = <any> {base: "https://unpkg.com/libav.js@3.1.4"};
+            LibAV = <any> {base: "https://unpkg.com/libav.js@3.3.4"};
             const scr = document.createElement("script");
-            scr.src = "https://unpkg.com/libav.js@3.1.4/libav-3.1.4.4-webm-opus-flac.js";
+            scr.src = "https://unpkg.com/libav.js@3.3.4/libav-3.3.4.4-webm-opus-flac.js";
             scr.onload = res;
             scr.onerror = rej;
             document.body.appendChild(scr);

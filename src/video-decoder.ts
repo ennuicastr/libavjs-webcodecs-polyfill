@@ -22,7 +22,7 @@ import * as libavs from "./libav";
 import * as misc from "./misc";
 import * as vf from "./video-frame";
 
-import * as LibAVJS from "../libav.types";
+import * as LibAVJS from "libav.js";
 
 export class VideoDecoder {
     constructor(init: VideoDecoderInit) {

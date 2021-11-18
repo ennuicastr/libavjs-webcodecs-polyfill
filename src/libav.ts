@@ -17,7 +17,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-import type * as LibAVJS from "../libav.types";
+import type * as LibAVJS from "libav.js";
 declare let LibAV: LibAVJS.LibAVWrapper;
 
 // Currently available libav instances
