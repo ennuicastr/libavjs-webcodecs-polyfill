@@ -1,6 +1,6 @@
 {
   "name": "libavjs-webcodecs-polyfill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
   "main": "libavjs-webcodecs-polyfill.min.js",
   "types": "src/main.ts",
@@ -27,7 +27,7 @@
   "homepage": "https://github.com/ennuicastr/libavjs-webcodecs-polyfill#readme",
   "devDependencies": {
     "browserify": "^17.0.0",
-    "libav.js": "^3.3.4",
+    "libav.js": "^3.4.4",
     "tinyify": "^3.0.0",
     "tsify": "^5.0.4",
     "typescript": "^4.4.4"
