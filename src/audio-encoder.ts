@@ -159,7 +159,7 @@ export class AudioEncoder {
     // Our own algorithm, close libav
     private async _free() {
         if (this._filter_graph) {
-            await this._libav.avfilter_graph_free(this._filter_graph);
+            await this._libav.avfilter_graph_free_js(this._filter_graph);
             this._filter_in_ctx = this._filter_out_ctx = null;
             this._filter_graph = this._buffersrc_ctx = this._buffersink_ctx =
                 0;
@@ -312,7 +312,7 @@ export class AudioEncoder {
                         preOutputs =
                             await libav.ff_encode_multi(c, framePtr, pkt, fframes);
 
-                        await libav.avfilter_graph_free(self._filter_graph);
+                        await libav.avfilter_graph_free_js(self._filter_graph);
                         self._filter_in_ctx = null;
                         self._filter_graph = self._buffersrc_ctx =
                             self._buffersink_ctx = 0;
