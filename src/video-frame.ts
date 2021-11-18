@@ -603,7 +603,7 @@ export const enum VideoPixelFormat {
  * Number of planes in the given format.
  * @param format  The format
  */
-function numPlanes(format: VideoPixelFormat) {
+export function numPlanes(format: VideoPixelFormat) {
     switch (format) {
         case VideoPixelFormat.I420:
         case VideoPixelFormat.I422:
@@ -632,7 +632,7 @@ function numPlanes(format: VideoPixelFormat) {
  * @param format  The format
  * @param planeIndex  The plane index
  */
-function sampleBytes(format: VideoPixelFormat, planeIndex: number) {
+export function sampleBytes(format: VideoPixelFormat, planeIndex: number) {
     switch (format) {
         case VideoPixelFormat.I420:
         case VideoPixelFormat.I420A:
@@ -662,7 +662,7 @@ function sampleBytes(format: VideoPixelFormat, planeIndex: number) {
  * @param format  The format
  * @param planeIndex  The plane index
  */
-function horizontalSubSamplingFactor(
+export function horizontalSubSamplingFactor(
     format: VideoPixelFormat, planeIndex: number
 ) {
     // First plane (often luma) is always full
@@ -702,7 +702,7 @@ function horizontalSubSamplingFactor(
  * @param format  The format
  * @param planeIndex  The plane index
  */
-function verticalSubSamplingFactor(
+export function verticalSubSamplingFactor(
     format: VideoPixelFormat, planeIndex: number
 ) {
     // First plane (often luma) is always full

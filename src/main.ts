@@ -169,6 +169,37 @@ export async function getAudioEncoder(
     return null;
 }
 
+/**
+ * Get an VideoEncoder environment that supports this configuration.
+ * @param config  Video encoder configuration
+ */
+export async function getVideoEncoder(
+    config: venc.VideoEncoderConfig
+): Promise<{
+    VideoEncoder: typeof venc.VideoEncoder,
+    EncodedVideoChunk: typeof evc.EncodedVideoChunk,
+    VideoFrame: typeof vf.VideoFrame
+}> {
+    if (typeof (<any> window).VideoEncoder !== "undefined" &&
+        (await (<any> window).VideoEncoder.isConfigSupported(config)).supported) {
+        return {
+            VideoEncoder: (<any> window).VideoEncoder,
+            EncodedVideoChunk: (<any> window).EncodedVideoChunk,
+            VideoFrame: (<any> window).VideoFrame
+        };
+    }
+
+    if ((await venc.VideoEncoder.isConfigSupported(config)).supported) {
+        return {
+            VideoEncoder: venc.VideoEncoder,
+            EncodedVideoChunk: evc.EncodedVideoChunk,
+            VideoFrame: vf.VideoFrame
+        };
+    }
+
+    return null;
+}
+
 // EncodedAudioChunk
 export type EncodedAudioChunk = eac.EncodedAudioChunk;
 export const EncodedAudioChunk = eac.EncodedAudioChunk;
@@ -216,3 +247,12 @@ export type VideoDecoderInit = vdec.VideoDecoderInit;
 export type VideoFrameOutputCallback = vdec.VideoFrameOutputCallback;
 export type VideoDecoderConfig = vdec.VideoDecoderConfig;
 export type VideoDecoderSupport = vdec.VideoDecoderSupport;
+
+// VideoEncoder
+export type VideoEncoder = venc.VideoEncoder;
+export const VideoEncoder = venc.VideoEncoder;
+export type VideoEncoderInit = venc.VideoEncoderInit;
+export type EncodedVideoChunkOutputCallback = venc.EncodedVideoChunkOutputCallback;
+export type VideoEncoderConfig = venc.VideoEncoderConfig;
+export type VideoEncoderEncodeOptions = venc.VideoEncoderEncodeOptions;
+export type VideoEncoderSupport = venc.VideoEncoderSupport;

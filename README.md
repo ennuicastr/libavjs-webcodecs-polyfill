@@ -4,9 +4,9 @@ This is a polyfill for the [WebCodecs API](https://w3c.github.io/webcodecs/).
 
 No, really.
 
-Right now, it supports decoding and audio encoding, but video encoding is
-coming soon. Note however that there are no plans to implement image formats,
-only video and audio.
+It supports the VideoEncoder, AudioEncoder, VideoDecoder, and AudioDecoder
+classes, and all the classes and interfaces required by them. There are no
+plans to implement image formats, only video and audio.
 
 It implements WebCodecs through
 [libav.js](https://github.com/Yahweasel/libav.js/), which is a port of
@@ -34,7 +34,7 @@ as a [ponyfill](https://ponyfill.com), with the API under the global
 If you don't bring your own libav.js, LibAVJS-WebCodecs-Polyfill will load its
 own, but it is highly recommended that you do *not* use this option, because
 libav.js is designed to use Web Workers, and Web Workers cannot be loaded from
-a different origin.
+a different origin. This will hurt both performance and responsiveness.
 
 You can use LibAVJS-WebCodecs-Polyfill along with a browser implementation of
 WebCodecs, but you cannot mix and match raw data objects from each (e.g.,
@@ -48,8 +48,8 @@ either WebCodecs' or LibAVJS-WebCodecs-Polyfill's version.
 
 ## Compatibility
 
-LibAVJS-WebCodecs-Polyfill should be up to date with revision `d920a2cb7`
-(2021-11-10) of the WebCodecs specification.
+LibAVJS-WebCodecs-Polyfill should be up to date with revision `ff5738bb8`
+(2021-11-16) of the WebCodecs specification.
 
 Depending on the libav.js version used, LibAVJS-WebCodecs-Polyfill supports the
 audio codecs flac, opus, and vorbis, and the video codecs vp9 and vp8. The
@@ -86,3 +86,10 @@ works with an array.
 
 Certain events are supposed to eagerly halt the event queue, but
 LibAVJS-WebCodecs-Polyfill always lets the event queue finish.
+
+The framerate reported to video codecs is the nearest whole number to the input
+framerate. This should usually only affect bitrate and latency calculations, as
+each frame is individually timestamped.
+
+The `options` parameter of `VideoEncoder.encode`, which should allow insisting
+on I-frames, is not supported.
