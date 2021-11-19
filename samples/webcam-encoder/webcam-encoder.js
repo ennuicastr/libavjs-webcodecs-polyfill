@@ -24,7 +24,7 @@
         btn.innerText = "Stop";
         btn.onclick = () => {
             stop = true;
-            bton.innerText = "...";
+            btn.innerText = "...";
             btn.onclick = () => {};
         };
 

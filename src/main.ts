@@ -52,9 +52,9 @@ export async function load(options: {
             libavOptions.noworker = true;
 
             // Load libav
-            LibAV = <any> {base: "https://unpkg.com/libav.js@3.4.4"};
+            LibAV = <any> {base: "https://unpkg.com/libav.js@3.5.4"};
             const scr = document.createElement("script");
-            scr.src = "https://unpkg.com/libav.js@3.4.4/libav-3.4.4.4-webm-opus-flac.js";
+            scr.src = "https://unpkg.com/libav.js@3.5.4/libav-3.5.4.4.1-webm-opus-flac.js";
             scr.onload = res;
             scr.onerror = rej;
             document.body.appendChild(scr);

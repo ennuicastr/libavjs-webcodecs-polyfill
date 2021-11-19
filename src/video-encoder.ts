@@ -20,6 +20,7 @@
 import * as evc from "./encoded-video-chunk";
 import * as libavs from "./libav";
 import * as misc from "./misc";
+import * as vd from "./video-decoder";
 import * as vf from "./video-frame";
 
 import type * as LibAVJS from "libav.js";
@@ -56,6 +57,13 @@ export class VideoEncoder {
     private _pkt: number;
     private _extradataSet: boolean;
     private _extradata: Uint8Array;
+    private _metadata: EncodedVideoChunkMetadata;
+
+    // Software scaler state, if used
+    private _sws: number;
+    private _swsFrame: number;
+    private _swsIn: SWScaleState;
+    private _swsOut: SWScaleState;
 
     configure(config: VideoEncoderConfig): void {
         const self = this;
@@ -85,6 +93,11 @@ export class VideoEncoder {
              * implementation supporting config. */
             if (supported) {
                 const libav = self._libav = await libavs.get();
+                self._metadata = {
+                    decoderConfig: {
+                        codec: inCodec
+                    }
+                };
 
                 // Map the codec to a libav name
                 let codec = inCodec;
@@ -133,6 +146,14 @@ export class VideoEncoder {
                 self._extradataSet = false;
                 self._extradata = null;
                 await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
+
+                self._sws = 0;
+                self._swsFrame = 0;
+                self._swsOut = {
+                    width: config.width,
+                    height: config.height,
+                    format: libav.AV_PIX_FMT_YUV420P
+                };
             }
 
             /* 3. Otherwise, run the Close VideoEncoder algorithm with
@@ -146,6 +167,12 @@ export class VideoEncoder {
 
     // Our own algorithm, close libav
     private async _free() {
+        if (this._sws) {
+            await this._libav.av_frame_free_js(this._swsFrame);
+            await this._libav.sws_freeContext(this._sws);
+            this._sws = this._swsFrame = 0;
+            this._swsIn = this._swsOut = null;
+        }
         if (this._c) {
             await this._libav.ff_free_encoder(this._c, this._frame, this._pkt);
             this._codec = this._c = this._frame = this._pkt = 0;
@@ -211,6 +238,7 @@ export class VideoEncoder {
             const c = self._c;
             const pkt = self._pkt;
             const framePtr = self._frame;
+            const swsOut = self._swsOut;
 
             let encodedOutputs: LibAVJS.Packet[] = null;
 
@@ -268,7 +296,7 @@ export class VideoEncoder {
                         vf.horizontalSubSamplingFactor(frameClone.format, p);
                     const vssf =
                         vf.verticalSubSamplingFactor(frameClone.format, p);
-                    const w = ~~(frameClone.codedWidth / hssf);
+                    const w = ~~(frameClone.codedWidth * sb / hssf);
                     const h = ~~(frameClone.codedHeight / vssf);
                     for (let y = 0; y < h; y++) {
                         plane.push(rawU8.subarray(rawIdx, rawIdx + w));
@@ -291,9 +319,60 @@ export class VideoEncoder {
                     pict_type: options.keyFrame ? 1 : 0
                 };
 
-                // And encode
-                encodedOutputs =
-                    await libav.ff_encode_multi(c, framePtr, pkt, [frame]);
+                // Possibly scale
+                if (frame.width !== swsOut.width ||
+                    frame.height !== swsOut.height ||
+                    frame.format !== swsOut.format) {
+                    // Need a scaler
+                    let sws = self._sws, swsIn = self._swsIn,
+                        swsFrame = self._swsFrame;
+                    if (!sws ||
+                        frame.width !== swsIn.width ||
+                        frame.height !== swsIn.height ||
+                        frame.format !== swsIn.format) {
+                        // Need to allocate the scaler
+                        if (sws)
+                            await libav.sws_freeContext(sws);
+                        swsIn = {
+                            width: frame.width,
+                            height: frame.height,
+                            format: frame.format
+                        };
+                        sws = await libav.sws_getContext(
+                            swsIn.width, swsIn.height, swsIn.format,
+                            swsOut.width, swsOut.height, swsOut.format,
+                            2, 0, 0, 0);
+                        self._sws = sws;
+                        self._swsIn = swsIn;
+
+                        // Maybe need a frame
+                        if (!swsFrame)
+                            self._swsFrame = swsFrame = await libav.av_frame_alloc()
+                    }
+
+                    // Scale and encode the frame
+                    const [, swsRes, , , , , encRes, recvRes] =
+                    await Promise.all([
+                        libav.ff_copyin_frame(framePtr, frame),
+                        libav.sws_scale_frame(sws, swsFrame, framePtr),
+                        libav.AVFrame_pts_s(swsFrame, pts),
+                        libav.AVFrame_ptshi_s(swsFrame, ptshi),
+                        libav.AVFrame_key_frame_s(swsFrame, options.keyFrame ? 1 : 0),
+                        libav.AVFrame_pict_type_s(swsFrame, options.keyFrame ? 1 : 0),
+                        libav.avcodec_send_frame(c, swsFrame),
+                        libav.avcodec_receive_packet(c, pkt)
+                    ]);
+                    if (swsRes < 0 || encRes < 0 || recvRes < 0)
+                        throw new Error("Encoding failed!");
+                    encodedOutputs = [await libav.ff_copyout_packet(pkt)];
+
+                } else {
+                    // Encode directly
+                    encodedOutputs =
+                        await libav.ff_encode_multi(c, framePtr, pkt, [frame]);
+
+                }
+
                 if (encodedOutputs.length && !self._extradataSet)
                     await self._getExtradata();
 
@@ -327,8 +406,10 @@ export class VideoEncoder {
         const c = this._c;
         const extradata = await libav.AVCodecContext_extradata(c);
         const extradata_size = await libav.AVCodecContext_extradata_size(c);
-        if (extradata && extradata_size)
-            this._extradata = await libav.copyout_u8(extradata, extradata_size);
+        if (extradata && extradata_size) {
+            this._metadata.decoderConfig.description = this._extradata =
+                await libav.copyout_u8(extradata, extradata_size);
+        }
         this._extradataSet = true;
     }
 
@@ -412,9 +493,15 @@ export interface VideoEncoderInit {
     error: misc.WebCodecsErrorCallback;
 }
 
-// NOTE: Metadata is not currently supported
 export type EncodedVideoChunkOutputCallback =
-    (chunk: evc.EncodedVideoChunk, metadata?: any) => void;
+    (chunk: evc.EncodedVideoChunk,
+    metadata?: EncodedVideoChunkMetadata) => void;
+
+export interface EncodedVideoChunkMetadata {
+    decoderConfig?: vd.VideoDecoderConfig;
+    svc?: any; // Unused
+    alphaSideData?: any; // Unused
+}
 
 export interface VideoEncoderConfig {
     codec: string;
@@ -443,4 +530,11 @@ export const enum LatencyMode {
 export interface VideoEncoderSupport {
     supported: boolean;
     config: VideoEncoderConfig;
+}
+
+// Used internally
+interface SWScaleState {
+    width: number;
+    height: number;
+    format: number;
 }
