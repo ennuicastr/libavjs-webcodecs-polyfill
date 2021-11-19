@@ -27,6 +27,7 @@ import * as vf from "./video-frame";
 import * as vdec from "./video-decoder";
 import * as venc from "./video-encoder";
 
+import * as config from "./config";
 import * as libav from "./libav";
 import * as misc from "./misc";
 
@@ -74,130 +75,6 @@ export async function load(options: {
                 window[exp] = this[exp];
         }
     }
-}
-
-/**
- * Get an AudioDecoder environment that supports this configuration.
- * @param config  Audio decoder configuration
- */
-export async function getAudioDecoder(
-    config: adec.AudioDecoderConfig
-): Promise<{
-    AudioDecoder: typeof adec.AudioDecoder,
-    EncodedAudioChunk: typeof eac.EncodedAudioChunk,
-    AudioData: typeof ad.AudioData
-}> {
-    if (typeof (<any> window).AudioDecoder !== "undefined" &&
-        (await (<any> window).AudioDecoder.isConfigSupported(config)).supported) {
-        return {
-            AudioDecoder: (<any> window).AudioDecoder,
-            EncodedAudioChunk: (<any> window).EncodedAudioChunk,
-            AudioData: (<any> window).AudioData
-        };
-    }
-
-    if ((await adec.AudioDecoder.isConfigSupported(config)).supported) {
-        return {
-            AudioDecoder: adec.AudioDecoder,
-            EncodedAudioChunk: eac.EncodedAudioChunk,
-            AudioData: ad.AudioData
-        };
-    }
-
-    return null;
-}
-
-/**
- * Get an VideoDecoder environment that supports this configuration.
- * @param config  Video decoder configuration
- */
-export async function getVideoDecoder(
-    config: vdec.VideoDecoderConfig
-): Promise<{
-    VideoDecoder: typeof vdec.VideoDecoder,
-    EncodedVideoChunk: typeof evc.EncodedVideoChunk,
-    VideoFrame: typeof vf.VideoFrame
-}> {
-    if (typeof (<any> window).VideoDecoder !== "undefined" &&
-        (await (<any> window).VideoDecoder.isConfigSupported(config)).supported) {
-        return {
-            VideoDecoder: (<any> window).VideoDecoder,
-            EncodedVideoChunk: (<any> window).EncodedVideoChunk,
-            VideoFrame: (<any> window).VideoFrame
-        };
-    }
-
-    if ((await vdec.VideoDecoder.isConfigSupported(config)).supported) {
-        return {
-            VideoDecoder: vdec.VideoDecoder,
-            EncodedVideoChunk: evc.EncodedVideoChunk,
-            VideoFrame: vf.VideoFrame
-        };
-    }
-
-    return null;
-}
-
-/**
- * Get an AudioEncoder environment that supports this configuration.
- * @param config  Audio encoder configuration
- */
-export async function getAudioEncoder(
-    config: aenc.AudioEncoderConfig
-): Promise<{
-    AudioEncoder: typeof aenc.AudioEncoder,
-    EncodedAudioChunk: typeof eac.EncodedAudioChunk,
-    AudioData: typeof ad.AudioData
-}> {
-    if (typeof (<any> window).AudioEncoder !== "undefined" &&
-        (await (<any> window).AudioEncoder.isConfigSupported(config)).supported) {
-        return {
-            AudioEncoder: (<any> window).AudioEncoder,
-            EncodedAudioChunk: (<any> window).EncodedAudioChunk,
-            AudioData: (<any> window).AudioData
-        };
-    }
-
-    if ((await aenc.AudioEncoder.isConfigSupported(config)).supported) {
-        return {
-            AudioEncoder: aenc.AudioEncoder,
-            EncodedAudioChunk: eac.EncodedAudioChunk,
-            AudioData: ad.AudioData
-        };
-    }
-
-    return null;
-}
-
-/**
- * Get an VideoEncoder environment that supports this configuration.
- * @param config  Video encoder configuration
- */
-export async function getVideoEncoder(
-    config: venc.VideoEncoderConfig
-): Promise<{
-    VideoEncoder: typeof venc.VideoEncoder,
-    EncodedVideoChunk: typeof evc.EncodedVideoChunk,
-    VideoFrame: typeof vf.VideoFrame
-}> {
-    if (typeof (<any> window).VideoEncoder !== "undefined" &&
-        (await (<any> window).VideoEncoder.isConfigSupported(config)).supported) {
-        return {
-            VideoEncoder: (<any> window).VideoEncoder,
-            EncodedVideoChunk: (<any> window).EncodedVideoChunk,
-            VideoFrame: (<any> window).VideoFrame
-        };
-    }
-
-    if ((await venc.VideoEncoder.isConfigSupported(config)).supported) {
-        return {
-            VideoEncoder: venc.VideoEncoder,
-            EncodedVideoChunk: evc.EncodedVideoChunk,
-            VideoFrame: vf.VideoFrame
-        };
-    }
-
-    return null;
 }
 
 // EncodedAudioChunk
@@ -256,3 +133,15 @@ export type EncodedVideoChunkOutputCallback = venc.EncodedVideoChunkOutputCallba
 export type VideoEncoderConfig = venc.VideoEncoderConfig;
 export type VideoEncoderEncodeOptions = venc.VideoEncoderEncodeOptions;
 export type VideoEncoderSupport = venc.VideoEncoderSupport;
+
+// Configurations/environments
+export type AudioDecoderEnvironment = config.AudioDecoderEnvironment;
+export type VideoDecoderEnvironment = config.VideoDecoderEnvironment;
+export type AudioEncoderEnvironment = config.AudioEncoderEnvironment;
+export type VideoEncoderEnvironment = config.VideoEncoderEnvironment;
+export type UnsupportedException = config.UnsupportedException;
+export const UnsupportedException = config.UnsupportedException;
+export const getAudioDecoder = config.getAudioDecoder;
+export const getVideoDecoder = config.getVideoDecoder;
+export const getAudioEncoder = config.getAudioEncoder;
+export const getVideoEncoder = config.getVideoEncoder;
