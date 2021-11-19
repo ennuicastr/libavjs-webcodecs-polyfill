@@ -69,7 +69,7 @@ export async function load(options: {
     if (options.polyfill) {
         for (const exp of [
             "EncodedAudioChunk", "AudioData", "AudioDecoder", "AudioEncoder",
-            "EncodedVideoChunk", "VideoFrame", "VideoDecoder" "VideoEncoder",
+            "EncodedVideoChunk", "VideoFrame", "VideoDecoder", "VideoEncoder"
         ]) {
             if (!window[exp])
                 window[exp] = this[exp];
