@@ -72,8 +72,8 @@ async function codecs(encoders: boolean): Promise<string[]> {
         ["flac", "flac"],
         ["libopus", "opus"],
         ["libvorbis", "vorbis"],
-        ["libvpx_vp9", "vp09"],
-        ["libvpx_vp8", "vp8"],
+        ["libaom-av1", "av01"],
+        ["libvpx-vp9", "vp09"],
         ["libvpx", "vp8"]
     ]) {
         if (encoders) {

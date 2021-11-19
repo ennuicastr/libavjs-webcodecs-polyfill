@@ -102,6 +102,11 @@ export class VideoEncoder {
                 // Map the codec to a libav name
                 let codec = inCodec;
                 switch (codec) {
+                    case "av01":
+                    case "av1":
+                        codec = "libaom-av1";
+                        break;
+
                     case "vp09":
                     case "vp9":
                         codec = "libvpx-vp9";
@@ -131,12 +136,20 @@ export class VideoEncoder {
                 // NOTE: CBR requests are, quite rightly, ignored
 
                 if (config.latencyMode === LatencyMode.REALTIME) {
-                    /* NOTE: These flags are specific to libvpx, and will need
-                     * to change if AV1 support is added */
-                    options = {
-                        quality: "realtime",
-                        "cpu-used": "8"
-                    };
+                    if (codec === "libaom-av1") {
+                        options = {
+                            usage: "realtime",
+                            "cpu-used": "8"
+                        };
+
+                    } else {
+                        // libvpx
+                        options = {
+                            quality: "realtime",
+                            "cpu-used": "8"
+                        };
+
+                    }
                 }
 
                 // And initialize
