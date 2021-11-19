@@ -351,7 +351,7 @@ export class VideoEncoder {
                     }
 
                     // Scale and encode the frame
-                    const [, swsRes, , , , , encRes, recvRes] =
+                    const [, swsRes, , , , , encRes] =
                     await Promise.all([
                         libav.ff_copyin_frame(framePtr, frame),
                         libav.sws_scale_frame(sws, swsFrame, framePtr),
@@ -359,12 +359,21 @@ export class VideoEncoder {
                         libav.AVFrame_ptshi_s(swsFrame, ptshi),
                         libav.AVFrame_key_frame_s(swsFrame, options.keyFrame ? 1 : 0),
                         libav.AVFrame_pict_type_s(swsFrame, options.keyFrame ? 1 : 0),
-                        libav.avcodec_send_frame(c, swsFrame),
-                        libav.avcodec_receive_packet(c, pkt)
+                        libav.avcodec_send_frame(c, swsFrame)
                     ]);
-                    if (swsRes < 0 || encRes < 0 || recvRes < 0)
+                    if (swsRes < 0 || encRes < 0)
                         throw new Error("Encoding failed!");
-                    encodedOutputs = [await libav.ff_copyout_packet(pkt)];
+                    encodedOutputs = [];
+                    while (true) {
+                        const recv =
+                            await libav.avcodec_receive_packet(c, pkt);
+                        if (recv === -libav.EAGAIN)
+                            break;
+                        else if (recv < 0)
+                            throw new Error("Encoding failed!");
+                        encodedOutputs.push(
+                            await libav.ff_copyout_packet(pkt));
+                    }
 
                 } else {
                     // Encode directly
