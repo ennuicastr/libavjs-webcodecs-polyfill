@@ -439,9 +439,9 @@ export class VideoEncoder {
                 data: packet.data
             });
 
-            /*if (this._extradata)
-                this._output(chunk, this._extradata);
-            else*/
+            if (this._extradataSet)
+                this._output(chunk, this._metadata);
+            else
                 this._output(chunk);
         }
     }
