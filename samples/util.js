@@ -18,7 +18,8 @@ async function sampleMux(filename, codec, packets, extradata) {
         libavPackets.push({
             data: new Uint8Array(ab),
             pts, ptshi: 0,
-            dts: pts, dtshi: 0
+            dts: pts, dtshi: 0,
+            flags: (packet.type === "key") ? 1 : 0
         });
     }
 
