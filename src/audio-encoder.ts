@@ -86,63 +86,27 @@ export class AudioEncoder {
         this._p = this._p.then(async function() {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
-            const inCodec = config.codec.replace(/\..*/, "");
-            const supported = (libavs.encoders.indexOf(inCodec) >= 0);
+            const supported = libavs.encoder(config.codec, config);
 
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
             if (supported) {
                 const libav = self._libav = await libavs.get();
 
-                // Map the codec to a libav name
-                let codec = inCodec;
-                let sample_fmt: number = libav.AV_SAMPLE_FMT_FLT;
-                switch (codec) {
-                    case "flac":
-                        sample_fmt = libav.AV_SAMPLE_FMT_S32;
-                        break;
-
-                    case "opus":
-                        codec = "libopus";
-                        break;
-
-                    case "vorbis":
-                        codec = "libvorbis";
-                        sample_fmt = libav.AV_SAMPLE_FMT_FLTP;
-                        break;
-                }
-
-                // Map the flags
-                const ctx: LibAVJS.AVCodecContextProps = {sample_fmt};
-                if (codec === "opus")
-                    ctx.sample_rate = 48000;
-                else if (config.sampleRate)
-                    ctx.sample_rate = config.sampleRate;
-                else
-                    ctx.sample_rate = 48000;
-                if (config.numberOfChannels) {
-                    const cc = ctx.channels = config.numberOfChannels;
-                    ctx.channel_layout = (cc === 1) ? 4 : ((1<<cc)-1);
-                } else {
-                    ctx.channel_layout = 4;
-                }
-                if (config.bitrate && codec !== "flac")
-                    ctx.bit_rate = config.bitrate;
-
                 // And initialize
                 let frame_size: number;
                 [self._codec, self._c, self._frame, self._pkt, frame_size] =
-                    await libav.ff_init_encoder(codec, {ctx});
+                    await libav.ff_init_encoder(supported.codec, supported);
                 self._pts = 0;
                 self._extradataSet = false;
                 self._extradata = null;
-                await libav.AVCodecContext_time_base_s(self._c, 1, ctx.sample_rate);
+                await libav.AVCodecContext_time_base_s(self._c, 1, supported.ctx.sample_rate);
 
                 // Be ready to set up the filter
                 self._filter_out_ctx = {
-                    sample_rate: ctx.sample_rate,
-                    sample_fmt,
-                    channel_layout: ctx.channel_layout,
+                    sample_rate: supported.ctx.sample_rate,
+                    sample_fmt: supported.ctx.sample_fmt,
+                    channel_layout: supported.ctx.channel_layout,
                     frame_size
                 };
             }
@@ -465,10 +429,19 @@ export class AudioEncoder {
     static async isConfigSupported(
         config: AudioEncoderConfig
     ): Promise<AudioEncoderSupport> {
-        return {
-            supported: (libavs.encoders.indexOf(config.codec.replace(/\..*/, "")) >= 0),
-            config
-        };
+        const enc = libavs.encoder(config.codec, config);
+        let supported = false;
+        if (enc) {
+            const libav = await libavs.get();
+            try {
+                const [c, frame, pkt] =
+                    await libav.ff_init_encoder(enc.codec, enc);
+                await libav.ff_free_encoder(c, frame, pkt);
+                supported = true;
+            } catch (ex) {}
+            await libavs.free(libav);
+        }
+        return {supported, config};
     }
 }
 
@@ -481,7 +454,7 @@ export type EncodedAudioChunkOutputCallback =
     (output: eac.EncodedAudioChunk, metadata?: BufferSource) => void;
 
 export interface AudioEncoderConfig {
-    codec: string;
+    codec: string | {libavjs: libavs.LibAVJSCodec};
     sampleRate?: number;
     numberOfChannels?: number;
     bitrate?: number;

@@ -37,6 +37,16 @@ export let decoders: string[] = null;
 export let encoders: string[] = null;
 
 /**
+ * libav.js-specific codec request, used to bypass the codec registry and use
+ * anything your implementation of libav.js supports.
+ */
+export interface LibAVJSCodec {
+    codec: string,
+    ctx?: LibAVJS.AVCodecContextProps,
+    options?: Record<string, string>
+}
+
+/**
  * Set the libav loading options.
  */
 export function setLibAVOptions(to: any) {
@@ -95,4 +105,149 @@ async function codecs(encoders: boolean): Promise<string[]> {
 export async function load() {
     decoders = await codecs(false);
     encoders = await codecs(true);
+}
+
+/**
+ * Convert a decoder from the codec registry (or libav.js-specific parameters)
+ * to libav.js. Returns null if unsupported.
+ */
+export function decoder(
+    codec: string | {libavjs: LibAVJSCodec}
+): LibAVJSCodec {
+    if (typeof codec === "string") {
+        codec = codec.replace(/\..*/, "");
+        if (!(decoders.indexOf(codec) >= 0))
+            return null;
+
+        let outCodec: string = codec;
+        switch (codec) {
+            // Audio
+            case "opus":
+                outCodec = "libopus";
+                break;
+
+            case "vorbis":
+                outCodec = "libvorbis";
+                break;
+
+            // Video
+            case "av01":
+                outCodec = "libaom-av1";
+                break;
+
+            case "vp09":
+                outCodec = "libvpx-vp9";
+                break;
+
+            case "vp8":
+                outCodec = "libvpx";
+                break;
+        }
+
+        return {codec: outCodec};
+
+    } else {
+        return codec.libavjs;
+
+    }
+}
+
+/**
+ * Convert an encoder from the codec registry (or libav.js-specific parameters)
+ * to libav.js. Returns null if unsupported.
+ */
+export function encoder(
+    codec: string | {libavjs: LibAVJSCodec}, config: any
+): LibAVJSCodec {
+    if (typeof codec === "string") {
+        codec = codec.replace(/\..*/, "");
+        if (!(encoders.indexOf(codec) >= 0))
+            return null;
+
+        let outCodec: string = codec;
+        const ctx: LibAVJS.AVCodecContextProps = {};
+        const options: Record<string, string> = {};
+        let video = false;
+        switch (codec) {
+            // Audio
+            case "flac":
+                ctx.sample_fmt = 2 /* S32 */;
+                ctx.bit_rate = 0;
+                break;
+
+            case "opus":
+                outCodec = "libopus";
+                ctx.sample_fmt = 3 /* FLT */;
+                ctx.sample_rate = 48000;
+                break;
+
+            case "vorbis":
+                outCodec = "libvorbis";
+                ctx.sample_fmt = 8 /* FLTP */;
+                break;
+
+            // Video
+            case "av01":
+                video = true;
+                outCodec = "libaom-av1";
+                if (config.latencyMode === "realtime") {
+                    options.usage = "realtime";
+                    options["cpu-used"] = "8";
+                }
+                break;
+
+            case "vp09":
+                video = true;
+                outCodec = "libvpx-vp9";
+                if (config.latencyMode === "realtime") {
+                    options.quality = "realtime";
+                    options["cpu-used"] = "8";
+                }
+                break;
+
+            case "vp8":
+                video = true;
+                outCodec = "libvpx";
+                if (config.latencyMode === "realtime") {
+                    options.quality = "realtime";
+                    options["cpu-used"] = "8";
+                }
+                break;
+        }
+
+        if (video) {
+            ctx.pix_fmt = 0 /* YUV420P */;
+            ctx.width = config.width;
+            ctx.height = config.height;
+
+            if (config.framerate) {
+                /* FIXME: We need this as a rational, not a floating point, and
+                 * this is obviously not the right way to do it */
+                ctx.framerate_num = Math.round(config.framerate);
+                ctx.framerate_den = 1;
+            }
+
+        } else {
+            if (!ctx.sample_rate)
+                ctx.sample_rate = config.sampleRate || 48000;
+            if (config.numberOfChannels) {
+                const n = config.numberOfChannels;
+                ctx.channel_layout = (n === 1) ? 4 : ((1<<n)-1);
+            }
+        }
+
+        if (typeof ctx.bit_rate !== "number" && config.bitrate) {
+            // NOTE: CBR requests are, quite rightly, ignored
+            ctx.bit_rate = config.bitrate;
+        }
+
+        return {
+            codec: outCodec,
+            ctx, options
+        };
+
+    } else {
+        return codec.libavjs;
+
+    }
 }

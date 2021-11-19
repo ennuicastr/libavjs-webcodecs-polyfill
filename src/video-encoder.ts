@@ -86,8 +86,7 @@ export class VideoEncoder {
         this._p = this._p.then(async function() {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
-            const inCodec = config.codec.replace(/\..*/, "");
-            const supported = (libavs.encoders.indexOf(inCodec) >= 0);
+            const supported = libavs.encoder(config.codec, config);
 
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
@@ -95,67 +94,13 @@ export class VideoEncoder {
                 const libav = self._libav = await libavs.get();
                 self._metadata = {
                     decoderConfig: {
-                        codec: inCodec
+                        codec: supported.codec
                     }
                 };
-
-                // Map the codec to a libav name
-                let codec = inCodec;
-                switch (codec) {
-                    case "av01":
-                    case "av1":
-                        codec = "libaom-av1";
-                        break;
-
-                    case "vp09":
-                    case "vp9":
-                        codec = "libvpx-vp9";
-                        break;
-
-                    case "vp8":
-                        codec = "libvpx";
-                        break;
-                }
-
-                // Map the flags
-                const ctx: LibAVJS.AVCodecContextProps = {
-                    pix_fmt: libav.AV_PIX_FMT_YUV420P,
-                    width: config.width,
-                    height: config.height
-                };
-                let options: Record<string, string> = null;
-                // FIXME: Turn displayWidth/displayHeight into SAR
-                if (config.bitrate)
-                    ctx.bit_rate = config.bitrate;
-                if (config.framerate) {
-                    /* FIXME: We need this as a rational, not a floating-point,
-                     * and this is obviously not the right way to do it */
-                    ctx.framerate_num = Math.round(config.framerate);
-                    ctx.framerate_den = 1;
-                }
-                // NOTE: CBR requests are, quite rightly, ignored
-
-                if (config.latencyMode === LatencyMode.REALTIME) {
-                    if (codec === "libaom-av1") {
-                        options = {
-                            usage: "realtime",
-                            "cpu-used": "8"
-                        };
-
-                    } else {
-                        // libvpx
-                        options = {
-                            quality: "realtime",
-                            "cpu-used": "8"
-                        };
-
-                    }
-                }
 
                 // And initialize
-                let frame_size: number;
                 [self._codec, self._c, self._frame, self._pkt] =
-                    await libav.ff_init_encoder(codec, {ctx, options});
+                    await libav.ff_init_encoder(supported.codec, supported);
                 self._extradataSet = false;
                 self._extradata = null;
                 await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
@@ -165,7 +110,7 @@ export class VideoEncoder {
                 self._swsOut = {
                     width: config.width,
                     height: config.height,
-                    format: libav.AV_PIX_FMT_YUV420P
+                    format: supported.ctx.pix_fmt
                 };
             }
 
@@ -503,10 +448,19 @@ export class VideoEncoder {
     static async isConfigSupported(
         config: VideoEncoderConfig
     ): Promise<VideoEncoderSupport> {
-        return {
-            supported: (libavs.encoders.indexOf(config.codec.replace(/\..*/, "")) >= 0),
-            config
-        };
+        const enc = libavs.encoder(config.codec, config);
+        let supported = false;
+        if (enc) {
+            const libav = await libavs.get();
+            try {
+                const [c, frame, pkt] =
+                    await libav.ff_init_encoder(enc.codec, enc);
+                await libav.ff_free_encoder(c, frame, pkt);
+                supported = true;
+            } catch (ex) {}
+            await libavs.free(libav);
+        }
+        return {supported, config};
     }
 };
 
@@ -526,7 +480,7 @@ export interface EncodedVideoChunkMetadata {
 }
 
 export interface VideoEncoderConfig {
-    codec: string;
+    codec: string | {libavjs: libavs.LibAVJSCodec};
     width: number;
     height: number;
     displayWidth?: number;

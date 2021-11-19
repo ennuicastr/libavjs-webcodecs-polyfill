@@ -80,14 +80,16 @@ export class UnsupportedException extends Error {
 export async function getAudioDecoder(
     config: adec.AudioDecoderConfig
 ): Promise<AudioDecoderEnvironment> {
-    if (typeof (<any> window).AudioDecoder !== "undefined" &&
-        (await (<any> window).AudioDecoder.isConfigSupported(config)).supported) {
-        return {
-            AudioDecoder: (<any> window).AudioDecoder,
-            EncodedAudioChunk: (<any> window).EncodedAudioChunk,
-            AudioData: (<any> window).AudioData
-        };
-    }
+    try {
+        if (typeof (<any> window).AudioDecoder !== "undefined" &&
+            (await (<any> window).AudioDecoder.isConfigSupported(config)).supported) {
+            return {
+                AudioDecoder: (<any> window).AudioDecoder,
+                EncodedAudioChunk: (<any> window).EncodedAudioChunk,
+                AudioData: (<any> window).AudioData
+            };
+        }
+    } catch (ex) {}
 
     if ((await adec.AudioDecoder.isConfigSupported(config)).supported) {
         return {
@@ -108,14 +110,16 @@ export async function getAudioDecoder(
 export async function getVideoDecoder(
     config: vdec.VideoDecoderConfig
 ): Promise<VideoDecoderEnvironment> {
-    if (typeof (<any> window).VideoDecoder !== "undefined" &&
-        (await (<any> window).VideoDecoder.isConfigSupported(config)).supported) {
-        return {
-            VideoDecoder: (<any> window).VideoDecoder,
-            EncodedVideoChunk: (<any> window).EncodedVideoChunk,
-            VideoFrame: (<any> window).VideoFrame
-        };
-    }
+    try {
+        if (typeof (<any> window).VideoDecoder !== "undefined" &&
+            (await (<any> window).VideoDecoder.isConfigSupported(config)).supported) {
+            return {
+                VideoDecoder: (<any> window).VideoDecoder,
+                EncodedVideoChunk: (<any> window).EncodedVideoChunk,
+                VideoFrame: (<any> window).VideoFrame
+            };
+        }
+    } catch (ex) {}
 
     if ((await vdec.VideoDecoder.isConfigSupported(config)).supported) {
         return {
@@ -136,14 +140,16 @@ export async function getVideoDecoder(
 export async function getAudioEncoder(
     config: aenc.AudioEncoderConfig
 ): Promise<AudioEncoderEnvironment> {
-    if (typeof (<any> window).AudioEncoder !== "undefined" &&
-        (await (<any> window).AudioEncoder.isConfigSupported(config)).supported) {
-        return {
-            AudioEncoder: (<any> window).AudioEncoder,
-            EncodedAudioChunk: (<any> window).EncodedAudioChunk,
-            AudioData: (<any> window).AudioData
-        };
-    }
+    try {
+        if (typeof (<any> window).AudioEncoder !== "undefined" &&
+            (await (<any> window).AudioEncoder.isConfigSupported(config)).supported) {
+            return {
+                AudioEncoder: (<any> window).AudioEncoder,
+                EncodedAudioChunk: (<any> window).EncodedAudioChunk,
+                AudioData: (<any> window).AudioData
+            };
+        }
+    } catch (ex) {}
 
     if ((await aenc.AudioEncoder.isConfigSupported(config)).supported) {
         return {
@@ -164,14 +170,16 @@ export async function getAudioEncoder(
 export async function getVideoEncoder(
     config: venc.VideoEncoderConfig
 ): Promise<VideoEncoderEnvironment> {
-    if (typeof (<any> window).VideoEncoder !== "undefined" &&
-        (await (<any> window).VideoEncoder.isConfigSupported(config)).supported) {
-        return {
-            VideoEncoder: (<any> window).VideoEncoder,
-            EncodedVideoChunk: (<any> window).EncodedVideoChunk,
-            VideoFrame: (<any> window).VideoFrame
-        };
-    }
+    try {
+        if (typeof (<any> window).VideoEncoder !== "undefined" &&
+            (await (<any> window).VideoEncoder.isConfigSupported(config)).supported) {
+            return {
+                VideoEncoder: (<any> window).VideoEncoder,
+                EncodedVideoChunk: (<any> window).EncodedVideoChunk,
+                VideoFrame: (<any> window).VideoFrame
+            };
+        }
+    } catch (ex) {}
 
     if ((await venc.VideoEncoder.isConfigSupported(config)).supported) {
         return {

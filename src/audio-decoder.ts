@@ -79,28 +79,16 @@ export class AudioDecoder {
         this._p = this._p.then(async function() {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
-            const inCodec = config.codec.replace(/\..*/, "");
-            const supported = (libavs.decoders.indexOf(inCodec) >= 0);
+            const supported = libavs.decoder(config.codec);
 
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
             if (supported) {
                 const libav = self._libav = await libavs.get();
 
-                // Map the codec to a libav name
-                let codec = inCodec;
-                switch (codec) {
-                    case "opus":
-                        codec = "libopus";
-                        break;
-                    case "vorbis":
-                        codec = "libvorbis";
-                        break;
-                }
-
-                // And initialize
+                // Initialize
                 [self._codec, self._c, self._pkt, self._frame] =
-                    await libav.ff_init_decoder(codec);
+                    await libav.ff_init_decoder(supported.codec);
                 await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
             }
 
@@ -352,10 +340,18 @@ export class AudioDecoder {
     static async isConfigSupported(
         config: AudioDecoderConfig
     ): Promise<AudioDecoderSupport> {
-        return {
-            supported: (libavs.decoders.indexOf(config.codec.replace(/\..*/, "")) >= 0),
-            config
-        };
+        const dec = libavs.decoder(config.codec);
+        let supported = false;
+        if (dec) {
+            const libav = await libavs.get();
+            try {
+                const [c, pkt, frame] = await libav.ff_init_decoder(dec.codec);
+                await libav.ff_free_decoder(c, pkt, frame);
+                supported = true;
+            } catch (ex) {}
+            await libavs.free(libav);
+        }
+        return {supported, config};
     }
 }
 
@@ -367,7 +363,7 @@ export interface AudioDecoderInit {
 export type AudioDataOutputCallback = (output: ad.AudioData) => void;
 
 export interface AudioDecoderConfig {
-    codec: string;
+    codec: string | {libavjs: libavs.LibAVJSCodec};
     sampleRate: number;
     numberOfChannels: number;
     description?: BufferSource;

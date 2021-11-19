@@ -17,6 +17,8 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+import * as LibAVJS from "libav.js";
+
 export const enum CodecState {
     UNCONFIGURED = "unconfigured",
     CONFIGURED = "configured",
