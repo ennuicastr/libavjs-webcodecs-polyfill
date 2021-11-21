@@ -4,16 +4,16 @@ This is a polyfill for the [WebCodecs API](https://w3c.github.io/webcodecs/).
 
 No, really.
 
-It supports the VideoEncoder, AudioEncoder, VideoDecoder, and AudioDecoder
-classes, and all the classes and interfaces required by them. There are no
-plans to implement image formats, only video and audio.
+It supports the `VideoEncoder`, `AudioEncoder`, `VideoDecoder`, and
+`AudioDecoder` classes, and all the classes and interfaces required by them.
+There are no plans to implement image formats, only video and audio.
 
 It implements WebCodecs through
 [libav.js](https://github.com/Yahweasel/libav.js/), which is a port of
 [FFmpeg](https://ffmpeg.org/)'s library interface to WebAssembly and asm.js.
 
-To use it, simply include libav.js then this library, and then call and `await`
-`LibAVWebCodecs.load()`. `load` takes an optional `options` parameter, which is
+To use it, simply include libav.js then this library, and then call and `await
+LibAVWebCodecs.load()`. `load` takes an optional `options` parameter, which is
 an object:
 
 ```
@@ -43,7 +43,8 @@ LibAV-WebCodecs-Polyfill and vice-versa). To make this practical,
 `LibAVWebCodecs.getXY(config)` (where `X` = `Video` or `Audio` and `Y` =
 `Encoder` or `Decoder`) are implemented, and will return a promise for an
 object with, e.g.  `VideoEncoder`, `EncodedVideoChunk`, and `VideoFrame` set to
-either WebCodecs' or LibAVJS-WebCodecs-Polyfill's version.
+either WebCodecs' or LibAVJS-WebCodecs-Polyfill's version. The promise is
+rejected if the configuration is unsupported.
 
 
 ## Compatibility
@@ -52,14 +53,41 @@ LibAVJS-WebCodecs-Polyfill should be up to date with revision `ff5738bb8`
 (2021-11-16) of the WebCodecs specification.
 
 Depending on the libav.js version used, LibAVJS-WebCodecs-Polyfill supports the
-audio codecs flac, opus, and vorbis, and the video codecs vp9 and vp8. The
+audio codecs FLAC (`"flac"`), Opus (`"opus"`), and Vorbis (`"vorbis"`), and the
+video codecs AV1 (`"av01"`), VP9 (`"vp09"`), and VP8 (`"vp8"`). The
 `webm-opus-flac` variant, which LibAVJS-WebCodecs-Polyfill uses if no libav.js
-is loaded, supports flac, opus, and vp8.
+is loaded, supports FLAC, Opus, and VP8.
 
 FFmpeg supports many codecs, and it's generally easy to add new codecs to
 libav.js and LibAVJS-WebCodecs-Polyfill. However, there are no plans to add any
-codecs by the Misanthropic Patent Extortion Gang (MPEG), so the only useful
-codec not presently supported is AV1.
+codecs by the Misanthropic Patent Extortion Gang (MPEG), so all useful codecs
+in the WebCodecs codec registry are supported.
+
+LibAVJS-WebCodecs-Polyfill also supports bypassing the codec registry entirely
+and using any codec FFmpeg is capable of, by using the `LibAVJSCodec` interface
+(see `src/libav.ts`) instead of a string for the codec. For instance,
+`VideoEncoder` can be configured to use H.263+ like so:
+
+```
+const enc = new LibAVJS.VideoEncoder(...);
+enc.configure({
+    codec: {libavjs: {
+        codec: "h263p",
+        ctx: {
+            pix_fmt: 0,
+            width: settings.width,
+            height: settings.height,
+            framerate_num: settings.frameRate,
+            framerate_den: 1
+        }
+    }},
+    ...
+});
+```
+
+This is useful because VP8, even in realtime mode, is really too slow to
+encode/decode in software in WebAssembly on many modern systems, but a simpler
+codec like H.263+ works in software nearly anywhere.
 
 
 ## Limitations
@@ -70,10 +98,13 @@ LibAVJS-WebCodecs-Polyfill makes no attempt to replace
 draw `VideoFrame`s.
 
 libav.js is surprisingly fast for what it is, but it ain't fast. All audio
-codecs work fine, but video struggles. libav.js also currently doesn't support
-multithreading, so every encoder/decoder is single-threaded. But, multiple
-libav.js threads can themselves be loaded, so multithreading can still be
-achieved by using multiple encoders/decoders simultaneously.
+codecs work fine, but video struggles. This is why support for codecs outside
+the codec registry was added.
+
+libav.js also currently doesn't support multithreading, so every
+encoder/decoder is single-threaded. But, multiple libav.js threads can
+themselves be loaded, so multithreading can still be achieved by using multiple
+encoders/decoders simultaneously.
 
 `VideoFrame` is fairly incomplete. In particular, nothing to do with color
 spaces is actually implemented, and nor is cropping.
