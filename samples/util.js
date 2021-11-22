@@ -101,7 +101,7 @@ async function sampleCompareAudio(a, b) {
     blob = new Blob(b);
     b = new Float32Array(await blob.arrayBuffer());
 
-    let diff = Array.from(a).map((x, idx) => x - b[idx]).reduce((x, y) => x + y);
+    let diff = Array.from(a).map((x, idx) => Math.abs(x - b[idx])).reduce((x, y) => x + y);
     const div = document.createElement("div");
     div.innerText = `Difference: ${diff}`;
     document.body.appendChild(div);
