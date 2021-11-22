@@ -116,8 +116,6 @@ export function decoder(
 ): LibAVJSCodec {
     if (typeof codec === "string") {
         codec = codec.replace(/\..*/, "");
-        if (!(decoders.indexOf(codec) >= 0))
-            return null;
 
         let outCodec: string = codec;
         switch (codec) {
@@ -142,7 +140,23 @@ export function decoder(
             case "vp8":
                 outCodec = "libvpx";
                 break;
+
+            // Unsupported
+            case "mp3":
+            case "mp4a":
+            case "ulaw":
+            case "alaw":
+            case "avc1":
+                return null;
+
+            // Unrecognized
+            default:
+                throw new TypeError("Unrecognized codec");
         }
+
+        // Check whether we actually support this codec
+        if (!(decoders.indexOf(codec) >= 0))
+            return null;
 
         return {codec: outCodec};
 
@@ -160,9 +174,8 @@ export function encoder(
     codec: string | {libavjs: LibAVJSCodec}, config: any
 ): LibAVJSCodec {
     if (typeof codec === "string") {
-        codec = codec.replace(/\..*/, "");
-        if (!(encoders.indexOf(codec) >= 0))
-            return null;
+        const codecParts = codec.split(".");
+        codec = codecParts[0];
 
         let outCodec: string = codec;
         const ctx: LibAVJS.AVCodecContextProps = {};
@@ -194,6 +207,11 @@ export function encoder(
                     options.usage = "realtime";
                     options["cpu-used"] = "8";
                 }
+
+                // Check for advanced options
+                if (!av1Advanced(codecParts, ctx))
+                    return null;
+
                 break;
 
             case "vp09":
@@ -203,6 +221,11 @@ export function encoder(
                     options.quality = "realtime";
                     options["cpu-used"] = "8";
                 }
+
+                // Check for advanced options
+                if (!vp9Advanced(codecParts, ctx))
+                    return null;
+
                 break;
 
             case "vp8":
@@ -213,10 +236,27 @@ export function encoder(
                     options["cpu-used"] = "8";
                 }
                 break;
+
+            // Unsupported
+            case "mp3":
+            case "mp4a":
+            case "ulaw":
+            case "alaw":
+            case "avc1":
+                return null;
+
+            // Unrecognized
+            default:
+                throw new TypeError("Unrecognized codec");
         }
 
+        // Check whether we actually support this codec
+        if (!(encoders.indexOf(codec) >= 0))
+            return null;
+
         if (video) {
-            ctx.pix_fmt = 0 /* YUV420P */;
+            if (typeof ctx.pix_fmt !== "number")
+                ctx.pix_fmt = 0 /* YUV420P */;
             ctx.width = config.width;
             ctx.height = config.height;
 
@@ -250,4 +290,171 @@ export function encoder(
         return codec.libavjs;
 
     }
+}
+
+/**
+ * Handler for advanced options for AV1.
+ * @param codecParts  .-separated parts of the codec string.
+ * @param ctx  Context to populate with advanced options.
+ */
+function av1Advanced(codecParts: string[], ctx: LibAVJS.AVCodecContextProps) {
+    if (codecParts[1]) {
+        const profile = +codecParts[1];
+        if (profile >= 0 && profile <= 2)
+            ctx.profile = profile;
+        else
+            throw new TypeError("Invalid AV1 profile");
+    }
+
+    if (codecParts[2]) {
+        const level = +codecParts[2];
+        if (level >= 0 && level <= 23)
+            ctx.level = level;
+        else
+            throw new TypeError("Invalid AV1 level");
+    }
+
+    if (codecParts[3]) {
+        switch (codecParts[3]) {
+            case "M":
+                // Default
+                break;
+
+            case "H":
+                if (ctx.level >= 8) {
+                    // Valid but unsupported
+                    return false;
+                } else {
+                    throw new TypeError("The AV1 high tier is only available for level 4.0 and up");
+                }
+                break;
+
+            default:
+                throw new TypeError("Invalid AV1 tier");
+        }
+    }
+
+    if (codecParts[4]) {
+        const depth = +codecParts[3];
+        if (depth === 10 || depth === 12) {
+            // Valid but unsupported
+            return false;
+        } else if (depth !== 8) {
+            throw new TypeError("Invalid AV1 bit depth");
+        }
+    }
+
+    if (codecParts[5]) {
+        // Monochrome
+        switch (codecParts[5]) {
+            case "0":
+                // Default
+                break;
+
+            case "1":
+                // Valid but unsupported
+                return false;
+
+            default:
+                throw new TypeError("Invalid AV1 monochrome flag");
+        }
+    }
+
+    if (codecParts[6]) {
+        // Subsampling mode
+        switch (codecParts[6]) {
+            case "000": // YUV444
+                ctx.pix_fmt = 5 /* YUV444P */;
+                break;
+
+            case "100": // YUV422
+                ctx.pix_fmt = 4 /* YUV422P */;
+                break;
+
+            case "110": // YUV420P (default)
+                ctx.pix_fmt = 0 /* YUV420P */;
+                break;
+
+            case "111": // Monochrome
+                return false;
+
+            default:
+                throw new TypeError("Invalid AV1 subsampling mode");
+        }
+    }
+
+    /* The remaining values have to do with color formats, which we don't
+     * support correctly anyway */
+    return true;
+}
+
+/**
+ * Handler for advanced options for VP9.
+ * @param codecParts  .-separated parts of the codec string.
+ * @param ctx  Context to populate with advanced options.
+ */
+function vp9Advanced(codecParts: string[], ctx: LibAVJS.AVCodecContextProps) {
+    if (codecParts[1]) {
+        const profile = +codecParts[1];
+        if (profile >= 0 && profile <= 3)
+            ctx.profile = profile;
+        else
+            throw new TypeError("Invalid VP9 profile");
+    }
+
+    if (codecParts[2]) {
+        const level = [+codecParts[2][0], +codecParts[2][1]];
+        if (level[0] >= 1 && level[0] <= 4) {
+            if (level[1] >= 0 && level[1] <= 1) {
+                // OK
+            } else {
+                throw new TypeError("Invalid VP9 level");
+            }
+        } else if (level[0] >= 5 && level[0] <= 6) {
+            if (level[1] >= 0 && level[1] <= 2) {
+                // OK
+            } else {
+                throw new TypeError("Invalid VP9 level");
+            }
+        } else {
+            throw new TypeError("Invalid VP9 level");
+        }
+        ctx.level = +codecParts[2];
+    }
+
+    if (codecParts[3]) {
+        const depth = +codecParts[3];
+        if (depth === 10 || depth === 12) {
+            // Valid but unsupported
+            return false;
+        } else if (depth !== 8) {
+            throw new TypeError("Invalid VP9 bit depth");
+        }
+    }
+
+    if (codecParts[4]) {
+        const chromaMode = +codecParts[4];
+        switch (chromaMode) {
+            case 0:
+            case 1:
+                // FIXME: These are subtly different YUV420P modes, but we treat them the same
+                ctx.pix_fmt = 0 /* YUV420P */;
+                break;
+
+            case 2: // YUV422
+                ctx.pix_fmt = 4 /* YUV422P */;
+                break;
+
+            case 3: // YUV444
+                ctx.pix_fmt = 5 /* YUV444P */;
+                break;
+
+            default:
+                throw new TypeError("Invalid VP9 chroma subsampling format");
+        }
+    }
+
+    /* The remaining values have to do with color formats, which we don't
+     * support correctly anyway */
+    return true;
 }
