@@ -26,3 +26,15 @@ export const enum CodecState {
 }
 
 export type WebCodecsErrorCallback = (error: DOMException) => void;
+
+/**
+ * Clone this configuration. Just copies over the supported/recognized fields.
+ */
+export function cloneConfig(config: any, fields: string[]): any {
+    const ret: any = {};
+    for (const field of fields) {
+        if (field in config)
+            ret[field] = config[field];
+    }
+    return ret;
+}

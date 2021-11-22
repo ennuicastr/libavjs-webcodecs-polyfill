@@ -351,7 +351,13 @@ export class AudioDecoder {
             } catch (ex) {}
             await libavs.free(libav);
         }
-        return {supported, config};
+        return {
+            supported,
+            config: misc.cloneConfig(
+                config,
+                ["codec", "sampleRate", "numberOfChannels"]
+            )
+        };
     }
 }
 
