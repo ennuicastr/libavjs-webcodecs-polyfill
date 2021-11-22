@@ -5,8 +5,10 @@ This is a polyfill for the [WebCodecs API](https://w3c.github.io/webcodecs/).
 No, really.
 
 It supports the `VideoEncoder`, `AudioEncoder`, `VideoDecoder`, and
-`AudioDecoder` classes, and all the classes and interfaces required by them.
-There are no plans to implement image formats, only video and audio.
+`AudioDecoder` classes, a `VideoFrame`-specific version of
+`CanvasRenderingContext2D.drawImage`, and all the classes and interfaces
+required by these. There are no plans to implement image formats, only video
+and audio.
 
 It implements WebCodecs through
 [libav.js](https://github.com/Yahweasel/libav.js/), which is a port of
@@ -45,6 +47,14 @@ LibAV-WebCodecs-Polyfill and vice-versa). To make this practical,
 object with, e.g.  `VideoEncoder`, `EncodedVideoChunk`, and `VideoFrame` set to
 either WebCodecs' or LibAVJS-WebCodecs-Polyfill's version. The promise is
 rejected if the configuration is unsupported.
+
+To draw on a `VideoFrame` on a canvas, use `LibAVWebCodecs.canvasDrawImage(ctx,
+...)`. The first argument is the context, and the remaining arguments are as in
+`CanvasRenderingContext2D.drawImage`. It is safe to use `canvasDrawImage` with
+any image type, not just a `VideoFrame`; it will fall through to the original
+`drawImage` as needed. If you used the `polyfill` option while loading
+LibAVJS-WebCodecs-Polyfill, then `drawImage` itself will also support
+`VideoFrame`s.
 
 
 ## Compatibility
@@ -92,10 +102,10 @@ codec like H.263+ works in software nearly anywhere.
 
 ## Limitations
 
-Parts of the API outside of the main classes are not modified. In particular,
-LibAVJS-WebCodecs-Polyfill makes no attempt to replace
-`CanvasRenderingContext2D.drawImage` or otherwise give it the capability to
-draw `VideoFrame`s.
+Canvas drawable things are supposed to be usable for more than merely
+`CanvasRenderingContext2D.drawImage`, but that method is all that
+LibAVJS-WebCodecs-Polyfill polyfills. In particular, an `ImageBitmap` cannot be
+created from a `VideoFrame`.
 
 libav.js is surprisingly fast for what it is, but it ain't fast. All audio
 codecs work fine, but video struggles. This is why support for codecs outside

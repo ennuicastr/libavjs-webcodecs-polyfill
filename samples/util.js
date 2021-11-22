@@ -130,22 +130,11 @@ async function sampleOutputAudio(a) {
 }
 
 async function sampleOutputVideo(v) {
-    const ab = new ArrayBuffer(v.allocationSize());
-    v.copyTo(ab);
-    const u8 = new Uint8Array(ab);
     const canvas = document.createElement("canvas");
     canvas.style.display = "block";
     const w = canvas.width = v.codedWidth;
     const h = canvas.height = v.codedHeight;
     document.body.appendChild(canvas);
     const ctx = canvas.getContext("2d");
-
-    let idx = 0;
-    for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-            const g = u8[idx++];
-            ctx.fillStyle = `rgb(${g},${g},${g})`;
-            ctx.fillRect(x, y, 1, 1);
-        }
-    }
+    LibAVWebCodecs.canvasDrawImage(ctx, v, 0, 0);
 }

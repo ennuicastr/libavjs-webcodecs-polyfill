@@ -27,6 +27,8 @@ import * as vf from "./video-frame";
 import * as vdec from "./video-decoder";
 import * as venc from "./video-encoder";
 
+import * as rendering from "./rendering";
+
 import * as config from "./config";
 import * as libav from "./libav";
 import * as misc from "./misc";
@@ -75,6 +77,8 @@ export async function load(options: {
                 window[exp] = this[exp];
         }
     }
+
+    await rendering.load(!!options.polyfill);
 }
 
 // EncodedAudioChunk
@@ -133,6 +137,9 @@ export type EncodedVideoChunkOutputCallback = venc.EncodedVideoChunkOutputCallba
 export type VideoEncoderConfig = venc.VideoEncoderConfig;
 export type VideoEncoderEncodeOptions = venc.VideoEncoderEncodeOptions;
 export type VideoEncoderSupport = venc.VideoEncoderSupport;
+
+// Rendering
+export const canvasDrawImage = rendering.canvasDrawImage;
 
 // Configurations/environments
 export type AudioDecoderEnvironment = config.AudioDecoderEnvironment;
