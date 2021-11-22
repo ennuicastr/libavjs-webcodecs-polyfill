@@ -63,7 +63,7 @@
     if (b)
         await sampleCompareAudio(a, b);
 
-    await sampleOutputVideo(c[c.length - 1]);
+    sampleOutputVideo(c, 25);
     if (d)
-        await sampleOutputVideo(d[d.length - 1]);
+        sampleOutputVideo(d, 25);
 })();

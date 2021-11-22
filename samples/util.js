@@ -129,12 +129,19 @@ async function sampleOutputAudio(a) {
     }
 }
 
-async function sampleOutputVideo(v) {
+function sampleOutputVideo(v, fps) {
     const canvas = document.createElement("canvas");
     canvas.style.display = "block";
-    const w = canvas.width = v.codedWidth;
-    const h = canvas.height = v.codedHeight;
+    const w = canvas.width = v[0].codedWidth;
+    const h = canvas.height = v[0].codedHeight;
     document.body.appendChild(canvas);
     const ctx = canvas.getContext("2d");
-    LibAVWebCodecs.canvasDrawImage(ctx, v, 0, 0);
+
+    let idx = 0;
+    const interval = setInterval(function() {
+        LibAVWebCodecs.canvasDrawImage(ctx, v[idx++], 0, 0);
+
+        if (idx >= v.length)
+            idx = 0;
+    }, Math.round(1000 / fps))
 }
