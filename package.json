@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/ennuicastr/libavjs-webcodecs-polyfill#readme",
   "dependencies": {
-    "libav.js": "^3.5.4"
+    "libav.js": "^3.6.4"
   },
   "devDependencies": {
     "browserify": "^17.0.0",
