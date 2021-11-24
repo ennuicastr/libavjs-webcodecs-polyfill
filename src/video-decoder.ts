@@ -256,6 +256,17 @@ export class VideoDecoder {
             const codedWidth = frame.width;
             const codedHeight = frame.height;
 
+            // Check for non-square pixels
+            let displayWidth = codedWidth;
+            let displayHeight = codedHeight;
+            if (frame.sample_aspect_ratio[0]) {
+                const sar = frame.sample_aspect_ratio;
+                if (sar[0] > sar[1])
+                    displayWidth = ~~(codedWidth * sar[0] / sar[1]);
+                else
+                    displayHeight = ~~(codedHeight * sar[1] / sar[0]);
+            }
+
             // 3. timestamp
             const timestamp = (frame.ptshi * 0x100000000 + frame.pts) * 1000;
 
@@ -281,7 +292,8 @@ export class VideoDecoder {
             }
 
             const data = new vf.VideoFrame(raw, {
-                format, codedWidth, codedHeight, timestamp
+                format, codedWidth, codedHeight, displayWidth, displayHeight,
+                timestamp
             });
 
             this._output(data);

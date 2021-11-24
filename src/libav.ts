@@ -257,14 +257,22 @@ export function encoder(
         if (video) {
             if (typeof ctx.pix_fmt !== "number")
                 ctx.pix_fmt = 0 /* YUV420P */;
-            ctx.width = config.width;
-            ctx.height = config.height;
+            const width = ctx.width = config.width;
+            const height = ctx.height = config.height;
 
             if (config.framerate) {
                 /* FIXME: We need this as a rational, not a floating point, and
                  * this is obviously not the right way to do it */
                 ctx.framerate_num = Math.round(config.framerate);
                 ctx.framerate_den = 1;
+            }
+
+            // Check for non-square pixels
+            const dWidth = config.displayWidth || config.width;
+            const dHeight = config.displayHeight || config.height;
+            if (dWidth !== width || dHeight !== height) {
+                ctx.sample_aspect_ratio_num = dWidth * height;
+                ctx.sample_aspect_ratio_den = dHeight * width;
             }
 
         } else {

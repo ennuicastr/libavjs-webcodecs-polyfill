@@ -65,6 +65,11 @@ export class VideoEncoder {
     private _swsIn: SWScaleState;
     private _swsOut: SWScaleState;
 
+    // If our output uses non-square pixels, that information
+    private _nonSquarePixels: boolean;
+    private _sar_num: number;
+    private _sar_den: number;
+
     configure(config: VideoEncoderConfig): void {
         const self = this;
 
@@ -105,13 +110,26 @@ export class VideoEncoder {
                 self._extradata = null;
                 await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
 
+                const width = config.width;
+                const height = config.height;
+
                 self._sws = 0;
                 self._swsFrame = 0;
                 self._swsOut = {
-                    width: config.width,
-                    height: config.height,
+                    width, height,
                     format: supported.ctx.pix_fmt
                 };
+
+                // Check for non-square pixels
+                const dWidth = config.displayWidth || width;
+                const dHeight = config.displayHeight || height;
+                if (dWidth !== width || dHeight !== height) {
+                    this._nonSquarePixels = true;
+                    this._sar_num = dWidth * height;
+                    this._sar_den = dHeight * width;
+                } else {
+                    this._nonSquarePixels = false;
+                }
             }
 
             /* 3. Otherwise, run the Close VideoEncoder algorithm with
@@ -281,6 +299,13 @@ export class VideoEncoder {
                 if (frame.width !== swsOut.width ||
                     frame.height !== swsOut.height ||
                     frame.format !== swsOut.format) {
+                    if (frameClone._nonSquarePixels) {
+                        frame.sample_aspect_ratio = [
+                            frameClone._sar_num,
+                            frameClone._sar_den
+                        ];
+                    }
+
                     // Need a scaler
                     let sws = self._sws, swsIn = self._swsIn,
                         swsFrame = self._swsFrame;
@@ -309,10 +334,14 @@ export class VideoEncoder {
                     }
 
                     // Scale and encode the frame
-                    const [, swsRes, , , , , encRes] =
+                    const [, swsRes, , , , , , encRes] =
                     await Promise.all([
                         libav.ff_copyin_frame(framePtr, frame),
                         libav.sws_scale_frame(sws, swsFrame, framePtr),
+                        this._nonSquarePixels ?
+                            libav.AVFrame_sample_aspect_ratio_s(swsFrame,
+                                this._sar_num, this._sar_den) :
+                            null,
                         libav.AVFrame_pts_s(swsFrame, pts),
                         libav.AVFrame_ptshi_s(swsFrame, ptshi),
                         libav.AVFrame_key_frame_s(swsFrame, options.keyFrame ? 1 : 0),
@@ -334,6 +363,13 @@ export class VideoEncoder {
                     }
 
                 } else {
+                    if (this._nonSquarePixels) {
+                        frame.sample_aspect_ratio = [
+                            this._sar_num,
+                            this._sar_den
+                        ];
+                    }
+
                     // Encode directly
                     encodedOutputs =
                         await libav.ff_encode_multi(c, framePtr, pkt, [frame]);

@@ -32,8 +32,6 @@ export class VideoFrame {
     }
 
     private _constructCanvas(image: any, init: VideoFrameInit) {
-        // FIXME: This currently doesn't support using init at all
-
         if (offscreenCanvas === null) {
             offscreenCanvas = document.createElement("canvas");
             offscreenCanvas.style.display = "none";
@@ -69,7 +67,9 @@ export class VideoFrame {
             codedHeight: height,
             timestamp: init.timestamp,
             duration: init.duration || 0,
-            layout: [{offset: 0, stride: width * 4}]
+            layout: [{offset: 0, stride: width * 4}],
+            displayWidth: init.displayWidth || width,
+            displayHeight: init.displayHeight || height
         });
     }
 
@@ -78,8 +78,23 @@ export class VideoFrame {
         const width = this.codedWidth = init.codedWidth;
         const height = this.codedHeight = init.codedHeight;
         this.visibleRect = new DOMRect(0, 0, width, height);
-        this.displayWidth = init.codedWidth;
-        this.displayHeight = init.codedHeight;
+
+        const dWidth = this.displayWidth =
+            init.displayWidth || init.codedWidth;
+        const dHeight = this.displayHeight =
+            init.displayHeight || init.codedHeight;
+
+        // Account for non-square pixels
+        if (dWidth !== width ||
+            dHeight !== height) {
+            // Dubious (but correct) SAR calculation
+            this._nonSquarePixels = true;
+            this._sar_num = dWidth * height;
+            this._sar_den = dHeight * width;
+        } else {
+            this._nonSquarePixels = false;
+        }
+
         this.timestamp = init.timestamp;
         if (init.duration)
             this.duration = init.duration;
@@ -118,6 +133,16 @@ export class VideoFrame {
 
     private _layout: PlaneLayout[];
     private _data: Uint8Array;
+
+    /**
+     * (Internal) Does this use non-square pixels?
+     */
+    _nonSquarePixels: boolean;
+
+    /**
+     * (Internal) If non-square pixels, the SAR (sample/pixel aspect ratio)
+     */
+    _sar_num: number; _sar_den: number;
 
     // Internal
     _libavGetData() { return this._data; }
