@@ -489,7 +489,7 @@ export class VideoEncoder {
         if (enc) {
             const libav = await libavs.get();
             try {
-                const [c, frame, pkt] =
+                const [, c, frame, pkt] =
                     await libav.ff_init_encoder(enc.codec, enc);
                 await libav.ff_free_encoder(c, frame, pkt);
                 supported = true;

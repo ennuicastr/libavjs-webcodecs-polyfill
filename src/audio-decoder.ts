@@ -345,7 +345,7 @@ export class AudioDecoder {
         if (dec) {
             const libav = await libavs.get();
             try {
-                const [c, pkt, frame] = await libav.ff_init_decoder(dec.codec);
+                const [, c, pkt, frame] = await libav.ff_init_decoder(dec.codec);
                 await libav.ff_free_decoder(c, pkt, frame);
                 supported = true;
             } catch (ex) {}
