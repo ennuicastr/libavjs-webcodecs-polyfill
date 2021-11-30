@@ -120,6 +120,9 @@ export function decoder(
         let outCodec: string = codec;
         switch (codec) {
             // Audio
+            case "flac":
+                break;
+
             case "opus":
                 outCodec = "libopus";
                 break;
