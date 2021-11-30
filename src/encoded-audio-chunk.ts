@@ -23,7 +23,10 @@ export class EncodedAudioChunk {
         this.timestamp = init.timestamp;
         this.duration = init.duration || 0;
         const data = this._data =
-            new Uint8Array((<any> init.data).buffer || init.data);
+            new Uint8Array(
+                (<any> init.data).buffer || init.data,
+                (<any> init.data).byteOffset || 0
+            );
         this.byteLength = data.byteLength;
     }
 
@@ -38,7 +41,10 @@ export class EncodedAudioChunk {
     _libavGetData() { return this._data; }
 
     copyTo(destination: BufferSource) {
-        (new Uint8Array((<any> destination).buffer || destination)).set(this._data);
+        (new Uint8Array(
+            (<any> destination).buffer || destination,
+            (<any> destination).byteOffset || 0
+        )).set(this._data);
     }
 }
 

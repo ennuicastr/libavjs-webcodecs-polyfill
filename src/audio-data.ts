@@ -28,7 +28,8 @@ export class AudioData {
         this.numberOfChannels = init.numberOfChannels;
         this.timestamp = init.timestamp;
         const data = this._data =
-            audioView(format, (<any> init.data).buffer || init.data);
+            audioView(format, (<any> init.data).buffer || init.data,
+                      (<any> init.data).byteOffset || 0);
         this.duration = numberOfFrames / sampleRate * 1000000;
     }
 
@@ -178,7 +179,9 @@ export class AudioData {
          * equal [[format]], convert elements to the destFormat
          * AudioSampleFormat while making the copy. */
         if (this.format === destFormat) {
-            const dest = audioView(destFormat, (<any> destination).buffer || destination);
+            const dest = audioView(destFormat,
+                                   (<any> destination).buffer || destination,
+                                   (<any> destination).byteOffset || 0);
 
             if (isInterleaved(destFormat)) {
                 dest.set(planeFrames.subarray(
@@ -193,7 +196,9 @@ export class AudioData {
 
         } else {
             // Actual conversion necessary. Always to f32-planar.
-            const out = audioView(destFormat, (<any> destination).buffer || destination);
+            const out = audioView(destFormat,
+                                  (<any> destination).buffer || destination,
+                                  (<any> destination).byteOffset || 0);
 
             // First work out the conversion
             let sub = 0;
@@ -287,24 +292,27 @@ export interface AudioDataCopyToOptions {
  * format and buffer.
  * @param format  Sample format
  * @param buffer  ArrayBuffer (NOT view)
+ * @param byteOffset  Offset into the buffer
  */
-function audioView(format: AudioSampleFormat, buffer: ArrayBuffer): AudioTypedArray {
+function audioView(
+    format: AudioSampleFormat, buffer: ArrayBuffer, byteOffset: number
+): AudioTypedArray {
     switch (format) {
         case AudioSampleFormat.U8:
         case AudioSampleFormat.U8P:
-            return new Uint8Array(buffer);
+            return new Uint8Array(buffer, byteOffset);
 
         case AudioSampleFormat.S16:
         case AudioSampleFormat.S16P:
-            return new Int16Array(buffer);
+            return new Int16Array(buffer, byteOffset);
 
         case AudioSampleFormat.S32:
         case AudioSampleFormat.S32P:
-            return new Int32Array(buffer);
+            return new Int32Array(buffer, byteOffset);
 
         case AudioSampleFormat.F32:
         case AudioSampleFormat.F32P:
-            return new Float32Array(buffer);
+            return new Float32Array(buffer, byteOffset);
 
         default:
             throw new TypeError("Invalid AudioSampleFormat");

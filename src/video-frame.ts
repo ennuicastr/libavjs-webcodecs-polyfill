@@ -115,7 +115,10 @@ export class VideoFrame {
             this._layout = layout;
         }
 
-        this._data = new Uint8Array((<any> data).buffer || data);
+        this._data = new Uint8Array(
+            (<any> data).buffer || data,
+            (<any> data).byteOffset || 0
+        );
     }
 
     /* NOTE: These should all be readonly, but the constructor style above
@@ -454,7 +457,10 @@ export class VideoFrame {
     async copyTo(
         destination: BufferSource, options: VideoFrameCopyToOptions = {}
     ): Promise<PlaneLayout[]> {
-        const destBuf = new Uint8Array((<any> destination).buffer || destination);
+        const destBuf = new Uint8Array(
+            (<any> destination).buffer || destination,
+            (<any> destination).byteOffset || 0
+        );
 
         // 1. If [[Detached]] is true, throw an InvalidStateError DOMException.
         if (this._data === null)
