@@ -73,8 +73,8 @@ export async function load(options: {
             "EncodedAudioChunk", "AudioData", "AudioDecoder", "AudioEncoder",
             "EncodedVideoChunk", "VideoFrame", "VideoDecoder", "VideoEncoder"
         ]) {
-            if (!window[exp])
-                window[exp] = this[exp];
+            if (!(<any> window)[exp])
+                (<any> window)[exp] = (<any> this)[exp];
         }
     }
 
