@@ -80,7 +80,7 @@ export class AudioEncoder {
             this._p = this._p.then(() => this._free());
 
         // 3. Set [[state]] to "configured".
-        this.state = "unconfigured";
+        this.state = "configured";
 
         // 4. Queue a control message to configure the encoder using config.
         this._p = this._p.then(async function() {
