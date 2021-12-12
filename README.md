@@ -117,7 +117,10 @@ themselves be loaded, so multithreading can still be achieved by using multiple
 encoders/decoders simultaneously.
 
 `VideoFrame` is fairly incomplete. In particular, nothing to do with color
-spaces is actually implemented, and nor is cropping.
+spaces is actually implemented, and nor is cropping. The initialization of
+frames from canvas sources has many caveats in the spec, and none in
+LibAVJS-WebCodecs-Polyfill, and as a consequence, `timestamp` is always a
+mandatory field of `VideoFrameInit`.
 
 `VideoEncoder` assumes that `VideoFrame`s passed to it are fairly sane (i.e.,
 the planes are lain out in the obvious way).
