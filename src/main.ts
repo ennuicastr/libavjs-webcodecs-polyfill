@@ -85,11 +85,13 @@ export async function load(options: {
 export type EncodedAudioChunk = eac.EncodedAudioChunk;
 export const EncodedAudioChunk = eac.EncodedAudioChunk;
 export type EncodedAudioChunkInit = eac.EncodedAudioChunkInit;
+export type EncodedAudioChunkType = eac.EncodedAudioChunkType;
 
 // AudioData
 export type AudioData = ad.AudioData;
 export const AudioData = ad.AudioData;
 export type AudioDataInit = ad.AudioDataInit;
+export type AudioSampleFormat = ad.AudioSampleFormat;
 export type AudioDataCopyToOptions = ad.AudioDataCopyToOptions;
 
 // AudioDecoder
@@ -118,6 +120,7 @@ export type VideoFrame = vf.VideoFrame;
 export const VideoFrame = vf.VideoFrame;
 export type VideoFrameInit = vf.VideoFrameInit;
 export type VideoFrameBufferInit = vf.VideoFrameBufferInit;
+export type VideoPixelFormat = vf.VideoPixelFormat;
 export type PlaneLayout = vf.PlaneLayout;
 export type VideoFrameCopyToOptions = vf.VideoFrameCopyToOptions;
 
@@ -136,10 +139,15 @@ export type VideoEncoderInit = venc.VideoEncoderInit;
 export type EncodedVideoChunkOutputCallback = venc.EncodedVideoChunkOutputCallback;
 export type VideoEncoderConfig = venc.VideoEncoderConfig;
 export type VideoEncoderEncodeOptions = venc.VideoEncoderEncodeOptions;
+export type LatencyMode = venc.LatencyMode;
 export type VideoEncoderSupport = venc.VideoEncoderSupport;
 
 // Rendering
 export const canvasDrawImage = rendering.canvasDrawImage;
+
+// Misc
+export type CodecState = misc.CodecState;
+export type WebCodecsErrorcallback = misc.WebCodecsErrorCallback;
 
 // Configurations/environments
 export type AudioDecoderEnvironment = config.AudioDecoderEnvironment;

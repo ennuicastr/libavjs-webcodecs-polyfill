@@ -19,11 +19,10 @@
 
 import * as LibAVJS from "libav.js";
 
-export const enum CodecState {
-    UNCONFIGURED = "unconfigured",
-    CONFIGURED = "configured",
-    CLOSED = "closed"
-}
+export type CodecState =
+    "unconfigured" |
+    "configured" |
+    "closed";
 
 export type WebCodecsErrorCallback = (error: DOMException) => void;
 

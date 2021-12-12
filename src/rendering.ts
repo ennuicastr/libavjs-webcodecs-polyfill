@@ -101,33 +101,33 @@ export function canvasDrawImage(
     // Convert the format to libav.js
     let format: number = scaler.AV_PIX_FMT_RGBA;
     switch (image.format) {
-        case vf.VideoPixelFormat.I420:
+        case "I420":
             format = scaler.AV_PIX_FMT_YUV420P;
             break;
 
-        case vf.VideoPixelFormat.I420A:
+        case "I420A":
             format = scaler.AV_PIX_FMT_YUVA420P;
             break;
 
-        case vf.VideoPixelFormat.I422:
+        case "I422":
             format = scaler.AV_PIX_FMT_YUV422P;
             break;
 
-        case vf.VideoPixelFormat.I444:
+        case "I444":
             format = scaler.AV_PIX_FMT_YUV444P;
             break;
 
-        case vf.VideoPixelFormat.NV12:
+        case "NV12":
             format = scaler.AV_PIX_FMT_NV12;
             break;
 
-        case vf.VideoPixelFormat.RGBA:
-        case vf.VideoPixelFormat.RGBX:
+        case "RGBA":
+        case "RGBX":
             format = scaler.AV_PIX_FMT_RGBA;
             break;
 
-        case vf.VideoPixelFormat.BGRA:
-        case vf.VideoPixelFormat.BGRX:
+        case "BGRA":
+        case "BGRX":
             format = scaler.AV_PIX_FMT_BGRA;
             break;
     }

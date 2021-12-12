@@ -29,7 +29,7 @@ export class VideoDecoder {
         this._output = init.output;
         this._error = init.error;
 
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
         this.decodeQueueSize = 0;
 
         this._p = Promise.all([]);
@@ -62,7 +62,7 @@ export class VideoDecoder {
         // NOTE: We don't support sophisticated codec string parsing (yet)
 
         // 2. If [[state]] is “closed”, throw an InvalidStateError DOMException.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Decoder is closed", "InvalidStateError");
 
         // Free any internal state
@@ -70,7 +70,7 @@ export class VideoDecoder {
             this._p = this._p.then(() => this._free());
 
         // 3. Set [[state]] to "configured".
-        this.state = misc.CodecState.CONFIGURED;
+        this.state = "configured";
 
         // 4. Set [[key chunk required]] to true.
         // NOTE: Not implemented
@@ -118,7 +118,7 @@ export class VideoDecoder {
         this._resetVideoDecoder(exception);
 
         // 2. Set [[state]] to "closed".
-        this.state = misc.CodecState.CLOSED;
+        this.state = "closed";
 
         /* 3. Clear [[codec implementation]] and release associated system
          * resources. */
@@ -133,11 +133,11 @@ export class VideoDecoder {
 
     private _resetVideoDecoder(exception: DOMException) {
         // 1. If [[state]] is "closed", throw an InvalidStateError.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Decoder closed", "InvalidStateError");
 
         // 2. Set [[state]] to "unconfigured".
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
 
         // ... really, we're just going to free it now
         this._p = this._p.then(() => this._free());
@@ -147,7 +147,7 @@ export class VideoDecoder {
         const self = this;
 
         // 1. If [[state]] is not "configured", throw an InvalidStateError.
-        if (this.state !== misc.CodecState.CONFIGURED)
+        if (this.state !== "configured")
             throw new DOMException("Unconfigured", "InvalidStateError");
 
         // 2. If [[key chunk required]] is true:
@@ -221,31 +221,31 @@ export class VideoDecoder {
             let format: vf.VideoPixelFormat;
             switch (frame.format) {
                 case libav.AV_PIX_FMT_YUV420P:
-                    format = vf.VideoPixelFormat.I420;
+                    format = "I420";
                     break;
 
                 case libav.AV_PIX_FMT_YUVA420P:
-                    format = vf.VideoPixelFormat.I420A;
+                    format = "I420A";
                     break;
 
                 case libav.AV_PIX_FMT_YUV422P:
-                    format = vf.VideoPixelFormat.I422;
+                    format = "I422";
                     break;
 
                 case libav.AV_PIX_FMT_YUV444P:
-                    format = vf.VideoPixelFormat.I444;
+                    format = "I444";
                     break;
 
                 case libav.AV_PIX_FMT_NV12:
-                    format = vf.VideoPixelFormat.NV12;
+                    format = "NV12";
                     break;
 
                 case libav.AV_PIX_FMT_RGBA:
-                    format = vf.VideoPixelFormat.RGBA;
+                    format = "RGBA";
                     break;
 
                 case libav.AV_PIX_FMT_BGRA:
-                    format = vf.VideoPixelFormat.BGRA;
+                    format = "BGRA";
                     break;
 
                 default:

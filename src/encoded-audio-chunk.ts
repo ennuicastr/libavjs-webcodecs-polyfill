@@ -55,7 +55,6 @@ export interface EncodedAudioChunkInit {
     data: BufferSource;
 }
 
-export const enum EncodedAudioChunkType {
-    KEY = "key",
-    DELTA = "delta"
-}
+export type EncodedAudioChunkType =
+    "key" |
+    "delta";

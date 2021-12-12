@@ -62,7 +62,7 @@ export class VideoFrame {
         ctx.clearRect(0, 0, width, height);
         ctx.drawImage(image, 0, 0);
         this._constructBuffer(ctx.getImageData(0, 0, width, height).data, {
-            format: VideoPixelFormat.RGBA,
+            format: "RGBA",
             codedWidth: width,
             codedHeight: height,
             timestamp: init.timestamp,
@@ -609,26 +609,25 @@ export interface VideoFrameBufferInit {
     colorSpace?: VideoColorSpaceInit;
 }
 
-export const enum VideoPixelFormat {
+export type VideoPixelFormat =
     // 4:2:0 Y, U, V
-    I420 = "I420",
+    "I420" |
     // 4:2:0 Y, U, V, A
-    I420A = "I420A",
+    "I420A" |
     // 4:2:2 Y, U, V
-    I422 = "I422",
+    "I422" |
     // 4:4:4 Y, U, V
-    I444 = "I444",
+    "I444" |
     // 4:2:0 Y, UV
-    NV12 = "NV12",
+    "NV12" |
     // 32bpp RGBA
-    RGBA = "RGBA",
+    "RGBA" |
     // 32bpp RGBX (opaque)
-    RGBX = "RGBX",
+    "RGBX" |
     // 32bpp BGRA
-    BGRA = "BGRA",
+    "BGRA" |
     // 32bpp BGRX (opaque)
-    BGRX = "BGRX"
-}
+    "BGRX";
 
 /**
  * Number of planes in the given format.
@@ -636,21 +635,21 @@ export const enum VideoPixelFormat {
  */
 export function numPlanes(format: VideoPixelFormat) {
     switch (format) {
-        case VideoPixelFormat.I420:
-        case VideoPixelFormat.I422:
-        case VideoPixelFormat.I444:
+        case "I420":
+        case "I422":
+        case "I444":
             return 3;
 
-        case VideoPixelFormat.I420A:
+        case "I420A":
             return 4;
 
-        case VideoPixelFormat.NV12:
+        case "NV12":
             return 2;
 
-        case VideoPixelFormat.RGBA:
-        case VideoPixelFormat.RGBX:
-        case VideoPixelFormat.BGRA:
-        case VideoPixelFormat.BGRX:
+        case "RGBA":
+        case "RGBX":
+        case "BGRA":
+        case "BGRX":
             return 1;
 
         default:
@@ -665,22 +664,22 @@ export function numPlanes(format: VideoPixelFormat) {
  */
 export function sampleBytes(format: VideoPixelFormat, planeIndex: number) {
     switch (format) {
-        case VideoPixelFormat.I420:
-        case VideoPixelFormat.I420A:
-        case VideoPixelFormat.I422:
-        case VideoPixelFormat.I444:
+        case "I420":
+        case "I420A":
+        case "I422":
+        case "I444":
             return 1;
 
-        case VideoPixelFormat.NV12:
+        case "NV12":
             if (planeIndex === 1)
                 return 2;
             else
                 return 1;
 
-        case VideoPixelFormat.RGBA:
-        case VideoPixelFormat.RGBX:
-        case VideoPixelFormat.BGRA:
-        case VideoPixelFormat.BGRX:
+        case "RGBA":
+        case "RGBX":
+        case "BGRA":
+        case "BGRX":
             return 4;
 
         default:
@@ -701,26 +700,26 @@ export function horizontalSubSamplingFactor(
         return 1;
 
     switch (format) {
-        case VideoPixelFormat.I420:
-        case VideoPixelFormat.I422:
+        case "I420":
+        case "I422":
             return 2;
 
-        case VideoPixelFormat.I420A:
+        case "I420A":
             if (planeIndex === 3)
                 return 1;
             else
                 return 2;
 
-        case VideoPixelFormat.I444:
+        case "I444":
             return 1;
 
-        case VideoPixelFormat.NV12:
+        case "NV12":
             return 2;
 
-        case VideoPixelFormat.RGBA:
-        case VideoPixelFormat.RGBX:
-        case VideoPixelFormat.BGRA:
-        case VideoPixelFormat.BGRX:
+        case "RGBA":
+        case "RGBX":
+        case "BGRA":
+        case "BGRX":
             return 1;
 
         default:
@@ -741,26 +740,26 @@ export function verticalSubSamplingFactor(
         return 1;
 
     switch (format) {
-        case VideoPixelFormat.I420:
+        case "I420":
             return 2;
 
-        case VideoPixelFormat.I420A:
+        case "I420A":
             if (planeIndex === 3)
                 return 1;
             else
                 return 2;
 
-        case VideoPixelFormat.I422:
-        case VideoPixelFormat.I444:
+        case "I422":
+        case "I444":
             return 1;
 
-        case VideoPixelFormat.NV12:
+        case "NV12":
             return 2;
 
-        case VideoPixelFormat.RGBA:
-        case VideoPixelFormat.RGBX:
-        case VideoPixelFormat.BGRA:
-        case VideoPixelFormat.BGRX:
+        case "RGBA":
+        case "RGBX":
+        case "BGRA":
+        case "BGRX":
             return 1;
 
         default:

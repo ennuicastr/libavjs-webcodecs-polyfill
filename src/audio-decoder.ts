@@ -29,7 +29,7 @@ export class AudioDecoder {
         this._output = init.output;
         this._error = init.error;
 
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
         this.decodeQueueSize = 0;
 
         this._p = Promise.all([]);
@@ -62,7 +62,7 @@ export class AudioDecoder {
         // NOTE: We don't support sophisticated codec string parsing (yet)
 
         // 2. If [[state]] is “closed”, throw an InvalidStateError DOMException.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Decoder is closed", "InvalidStateError");
 
         // Free any internal state
@@ -70,7 +70,7 @@ export class AudioDecoder {
             this._p = this._p.then(() => this._free());
 
         // 3. Set [[state]] to "configured".
-        this.state = misc.CodecState.CONFIGURED;
+        this.state = "configured";
 
         // 4. Set [[key chunk required]] to true.
         // NOTE: Not implemented
@@ -118,7 +118,7 @@ export class AudioDecoder {
         this._resetAudioDecoder(exception);
 
         // 2. Set [[state]] to "closed".
-        this.state = misc.CodecState.CLOSED;
+        this.state = "closed";
 
         /* 3. Clear [[codec implementation]] and release associated system
          * resources. */
@@ -133,11 +133,11 @@ export class AudioDecoder {
 
     private _resetAudioDecoder(exception: DOMException) {
         // 1. If [[state]] is "closed", throw an InvalidStateError.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Decoder closed", "InvalidStateError");
 
         // 2. Set [[state]] to "unconfigured".
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
 
         // ... really, we're just going to free it now
         this._p = this._p.then(() => this._free());
@@ -147,7 +147,7 @@ export class AudioDecoder {
         const self = this;
 
         // 1. If [[state]] is not "configured", throw an InvalidStateError.
-        if (this.state !== misc.CodecState.CONFIGURED)
+        if (this.state !== "configured")
             throw new DOMException("Unconfigured", "InvalidStateError");
 
         // 2. If [[key chunk required]] is true:
@@ -222,38 +222,38 @@ export class AudioDecoder {
             let planar = false;
             switch (frame.format) {
                 case libav.AV_SAMPLE_FMT_U8:
-                    format = ad.AudioSampleFormat.U8;
+                    format = "u8";
                     break;
 
                 case libav.AV_SAMPLE_FMT_S16:
-                    format = ad.AudioSampleFormat.S16;
+                    format = "s16";
                     break;
 
                 case libav.AV_SAMPLE_FMT_S32:
-                    format = ad.AudioSampleFormat.S32;
+                    format = "s32";
                     break;
 
                 case libav.AV_SAMPLE_FMT_FLT:
-                    format = ad.AudioSampleFormat.F32;
+                    format = "f32";
                     break;
 
                 case libav.AV_SAMPLE_FMT_U8P:
-                    format = ad.AudioSampleFormat.U8;
+                    format = "u8";
                     planar = true;
                     break;
 
                 case libav.AV_SAMPLE_FMT_S16P:
-                    format = ad.AudioSampleFormat.S16;
+                    format = "s16";
                     planar = true;
                     break;
 
                 case libav.AV_SAMPLE_FMT_S32P:
-                    format = ad.AudioSampleFormat.S32;
+                    format = "s32";
                     planar = true;
                     break;
 
                 case libav.AV_SAMPLE_FMT_FLTP:
-                    format = ad.AudioSampleFormat.F32;
+                    format = "f32";
                     planar = true;
                     break;
 

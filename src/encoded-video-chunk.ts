@@ -21,10 +21,5 @@ import * as eac from "./encoded-audio-chunk";
 
 export type EncodedVideoChunk = eac.EncodedAudioChunk;
 export const EncodedVideoChunk = eac.EncodedAudioChunk;
-
 export type EncodedVideoChunkInit = eac.EncodedAudioChunkInit;
-
-export const enum EncodedVideoChunkType {
-    KEY = "key",
-    DELTA = "delta"
-}
+export type EncodedVideoChunkType = eac.EncodedAudioChunkType;

@@ -29,7 +29,7 @@ export class AudioEncoder {
         this._output = init.output;
         this._error = init.error;
 
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
         this.encodeQueueSize = 0;
 
         this._p = Promise.all([]);
@@ -72,7 +72,7 @@ export class AudioEncoder {
         // NOTE: We don't support sophisticated codec string parsing (yet)
 
         // 2. If [[state]] is "closed", throw an InvalidStateError.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Encoder is closed", "InvalidStateError");
 
         // Free any internal state
@@ -80,7 +80,7 @@ export class AudioEncoder {
             this._p = this._p.then(() => this._free());
 
         // 3. Set [[state]] to "configured".
-        this.state = misc.CodecState.CONFIGURED;
+        this.state = "unconfigured";
 
         // 4. Queue a control message to configure the encoder using config.
         this._p = this._p.then(async function() {
@@ -143,7 +143,7 @@ export class AudioEncoder {
         this._resetAudioEncoder(exception);
 
         // 2. Set [[state]] to "closed".
-        this.state = misc.CodecState.CLOSED;
+        this.state = "closed";
 
         /* 3. Clear [[codec implementation]] and release associated system
          * resources. */
@@ -158,11 +158,11 @@ export class AudioEncoder {
 
     private _resetAudioEncoder(exception: DOMException) {
         // 1. If [[state]] is "closed", throw an InvalidStateError.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Encoder closed", "InvalidStateError");
 
         // 2. Set [[state]] to "unconfigured".
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
 
         // ... really, we're just going to free it now
         this._p = this._p.then(() => this._free());
@@ -177,7 +177,7 @@ export class AudioEncoder {
             throw new TypeError("Detached");
 
         // 2. If [[state]] is not "configured", throw an InvalidStateError.
-        if (this.state !== misc.CodecState.CONFIGURED)
+        if (this.state !== "configured")
             throw new DOMException("Unconfigured", "InvalidStateError");
 
         /* 3. Let dataClone hold the result of running the Clone AudioData
@@ -212,35 +212,35 @@ export class AudioEncoder {
                 // Convert the format
                 let format: number;
                 switch (dataClone.format) {
-                    case ad.AudioSampleFormat.U8:
+                    case "u8":
                         format = libav.AV_SAMPLE_FMT_U8;
                         break;
 
-                    case ad.AudioSampleFormat.S16:
+                    case "s16":
                         format = libav.AV_SAMPLE_FMT_S16;
                         break;
 
-                    case ad.AudioSampleFormat.S32:
+                    case "s32":
                         format = libav.AV_SAMPLE_FMT_S32;
                         break;
 
-                    case ad.AudioSampleFormat.F32:
+                    case "f32":
                         format = libav.AV_SAMPLE_FMT_FLT;
                         break;
 
-                    case ad.AudioSampleFormat.U8P:
+                    case "u8-planar":
                         format = libav.AV_SAMPLE_FMT_U8P;
                         break;
 
-                    case ad.AudioSampleFormat.S16P:
+                    case "s16-planar":
                         format = libav.AV_SAMPLE_FMT_S16P;
                         break;
 
-                    case ad.AudioSampleFormat.S32P:
+                    case "s32-planar":
                         format = libav.AV_SAMPLE_FMT_S32P;
                         break;
 
-                    case ad.AudioSampleFormat.F32P:
+                    case "f32-planar":
                         format = libav.AV_SAMPLE_FMT_FLTP;
                         break;
 
@@ -361,7 +361,7 @@ export class AudioEncoder {
         for (const packet of packets) {
             // 1. type
             const type: eac.EncodedAudioChunkType =
-                (packet.flags & 1) ? eac.EncodedAudioChunkType.KEY : eac.EncodedAudioChunkType.DELTA;
+                (packet.flags & 1) ? "key" : "delta";
 
             // 2. timestamp
             let timestamp = Math.floor((packet.ptshi * 0x100000000 + packet.pts) / sampleRate * 1000000);

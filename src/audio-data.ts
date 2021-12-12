@@ -97,7 +97,7 @@ export class AudioData {
          * NotSupportedError DOMException. Conversion to f32-planar MUST always
          * be supported. */
         if (this.format !== destFormat &&
-            destFormat !== AudioSampleFormat.F32P)
+            destFormat !== "f32-planar")
             throw new DOMException("Only conversion to f32-planar is supported", "NotSupportedError");
 
         /* 6. Let frameCount be the number of frames in the plane identified by
@@ -204,19 +204,19 @@ export class AudioData {
             let sub = 0;
             let div = 1;
             switch (this.format) {
-                case AudioSampleFormat.U8:
-                case AudioSampleFormat.U8P:
+                case "u8":
+                case "u8-planar":
                     sub = 0x80;
                     div = 0x80;
                     break;
 
-                case AudioSampleFormat.S16:
-                case AudioSampleFormat.S16P:
+                case "s16":
+                case "s16-planar":
                     div = 0x8000;
                     break;
 
-                case AudioSampleFormat.S32:
-                case AudioSampleFormat.S32P:
+                case "s32":
+                case "s32-planar":
                     div = 0x80000000;
                     break;
             }
@@ -269,16 +269,15 @@ export interface AudioDataInit {
     data: BufferSource;
 }
 
-export const enum AudioSampleFormat {
-    U8 = "u8",
-    S16 = "s16",
-    S32 = "s32",
-    F32 = "f32",
-    U8P = "u8-planar",
-    S16P = "s16-planar",
-    S32P = "s32-planar",
-    F32P = "f32-planar"
-}
+export type AudioSampleFormat =
+    "u8" |
+    "s16" |
+    "s32" |
+    "f32" |
+    "u8-planar" |
+    "s16-planar" |
+    "s32-planar" |
+    "f32-planar";
 
 export interface AudioDataCopyToOptions {
     planeIndex: number;
@@ -298,20 +297,20 @@ function audioView(
     format: AudioSampleFormat, buffer: ArrayBuffer, byteOffset: number
 ): AudioTypedArray {
     switch (format) {
-        case AudioSampleFormat.U8:
-        case AudioSampleFormat.U8P:
+        case "u8":
+        case "u8-planar":
             return new Uint8Array(buffer, byteOffset);
 
-        case AudioSampleFormat.S16:
-        case AudioSampleFormat.S16P:
+        case "s16":
+        case "s16-planar":
             return new Int16Array(buffer, byteOffset);
 
-        case AudioSampleFormat.S32:
-        case AudioSampleFormat.S32P:
+        case "s32":
+        case "s32-planar":
             return new Int32Array(buffer, byteOffset);
 
-        case AudioSampleFormat.F32:
-        case AudioSampleFormat.F32P:
+        case "f32":
+        case "f32-planar":
             return new Float32Array(buffer, byteOffset);
 
         default:
@@ -325,18 +324,18 @@ function audioView(
  */
 function bytesPerSample(format: AudioSampleFormat): number {
 switch (format) {
-    case AudioSampleFormat.U8:
-    case AudioSampleFormat.U8P:
+    case "u8":
+    case "u8-planar":
         return 1;
 
-    case AudioSampleFormat.S16:
-    case AudioSampleFormat.S16P:
+    case "s16":
+    case "s16-planar":
         return 2;
 
-        case AudioSampleFormat.S32:
-        case AudioSampleFormat.S32P:
-        case AudioSampleFormat.F32:
-        case AudioSampleFormat.F32P:
+        case "s32":
+        case "s32-planar":
+        case "f32":
+        case "f32-planar":
             return 4;
 
         default:
@@ -350,16 +349,16 @@ switch (format) {
  */
 export function isInterleaved(format: AudioSampleFormat) {
     switch (format) {
-        case AudioSampleFormat.U8:
-        case AudioSampleFormat.S16:
-        case AudioSampleFormat.S32:
-        case AudioSampleFormat.F32:
+        case "u8":
+        case "s16":
+        case "s32":
+        case "f32":
             return true;
 
-        case AudioSampleFormat.U8P:
-        case AudioSampleFormat.S16P:
-        case AudioSampleFormat.S32P:
-        case AudioSampleFormat.F32P:
+        case "u8-planar":
+        case "s16-planar":
+        case "s32-planar":
+        case "f32-planar":
             return false;
 
         default:

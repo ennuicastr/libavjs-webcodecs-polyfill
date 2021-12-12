@@ -30,7 +30,7 @@ export class VideoEncoder {
         this._output = init.output;
         this._error = init.error;
 
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
         this.encodeQueueSize = 0;
 
         this._p = Promise.all([]);
@@ -77,7 +77,7 @@ export class VideoEncoder {
         // NOTE: We don't support sophisticated codec string parsing (yet)
 
         // 2. If [[state]] is "closed", throw an InvalidStateError.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Encoder is closed", "InvalidStateError");
 
         // Free any internal state
@@ -85,7 +85,7 @@ export class VideoEncoder {
             this._p = this._p.then(() => this._free());
 
         // 3. Set [[state]] to "configured".
-        this.state = misc.CodecState.CONFIGURED;
+        this.state = "configured";
 
         // 4. Queue a control message to configure the encoder using config.
         this._p = this._p.then(async function() {
@@ -164,7 +164,7 @@ export class VideoEncoder {
         this._resetVideoEncoder(exception);
 
         // 2. Set [[state]] to "closed".
-        this.state = misc.CodecState.CLOSED;
+        this.state = "closed";
 
         /* 3. Clear [[codec implementation]] and release associated system
          * resources. */
@@ -179,11 +179,11 @@ export class VideoEncoder {
 
     private _resetVideoEncoder(exception: DOMException) {
         // 1. If [[state]] is "closed", throw an InvalidStateError.
-        if (this.state === misc.CodecState.CLOSED)
+        if (this.state === "closed")
             throw new DOMException("Encoder closed", "InvalidStateError");
 
         // 2. Set [[state]] to "unconfigured".
-        this.state = misc.CodecState.UNCONFIGURED;
+        this.state = "unconfigured";
 
         // ... really, we're just going to free it now
         this._p = this._p.then(() => this._free());
@@ -198,7 +198,7 @@ export class VideoEncoder {
             throw new TypeError("Detached");
 
         // 2. If [[state]] is not "configured", throw an InvalidStateError.
-        if (this.state !== misc.CodecState.CONFIGURED)
+        if (this.state !== "configured")
             throw new DOMException("Unconfigured", "InvalidStateError");
 
         /* 3. Let frameClone hold the result of running the Clone VideoFrame
@@ -225,33 +225,33 @@ export class VideoEncoder {
                 // Convert the format
                 let format: number;
                 switch (frameClone.format) {
-                    case vf.VideoPixelFormat.I420:
+                    case "I420":
                         format = libav.AV_PIX_FMT_YUV420P;
                         break;
 
-                    case vf.VideoPixelFormat.I420A:
+                    case "I420A":
                         format = libav.AV_PIX_FMT_YUVA420P;
                         break;
 
-                    case vf.VideoPixelFormat.I422:
+                    case "I422":
                         format = libav.AV_PIX_FMT_YUV422P;
                         break;
 
-                    case vf.VideoPixelFormat.I444:
+                    case "I444":
                         format = libav.AV_PIX_FMT_YUV444P;
                         break;
 
-                    case vf.VideoPixelFormat.NV12:
+                    case "NV12":
                         format = libav.AV_PIX_FMT_NV12;
                         break;
 
-                    case vf.VideoPixelFormat.RGBA:
-                    case vf.VideoPixelFormat.RGBX:
+                    case "RGBA":
+                    case "RGBX":
                         format = libav.AV_PIX_FMT_RGBA;
                         break;
 
-                    case vf.VideoPixelFormat.BGRA:
-                    case vf.VideoPixelFormat.BGRX:
+                    case "BGRA":
+                    case "BGRX":
                         format = libav.AV_PIX_FMT_BGRA;
                         break;
 
@@ -422,7 +422,7 @@ export class VideoEncoder {
         for (const packet of packets) {
             // 1. type
             const type: evc.EncodedVideoChunkType =
-                (packet.flags & 1) ? evc.EncodedVideoChunkType.KEY : evc.EncodedVideoChunkType.DELTA;
+                (packet.flags & 1) ? "key" : "delta";
 
             // 2. timestamp
             let timestamp = Math.floor((packet.ptshi * 0x100000000 + packet.pts) * 1000);
@@ -541,10 +541,9 @@ export interface VideoEncoderEncodeOptions {
     keyFrame?: boolean;
 }
 
-export const enum LatencyMode {
-    QUALITY = "quality",
-    REALTIME ="realtime"
-}
+export type LatencyMode =
+    "quality" |
+    "realtime";
 
 export interface VideoEncoderSupport {
     supported: boolean;
