@@ -5,10 +5,10 @@ This is a polyfill for the [WebCodecs API](https://w3c.github.io/webcodecs/).
 No, really.
 
 It supports the `VideoEncoder`, `AudioEncoder`, `VideoDecoder`, and
-`AudioDecoder` classes, a `VideoFrame`-specific version of
-`CanvasRenderingContext2D.drawImage`, and all the classes and interfaces
-required by these. There are no plans to implement image formats, only video
-and audio.
+`AudioDecoder` classes, `VideoFrame`-specific versions of
+`CanvasRenderingContext2D.drawImage` and `createImageBitmap`, and all the
+classes and interfaces required by these. There are no plans to implement image
+formats, only video and audio.
 
 It implements WebCodecs through
 [libav.js](https://github.com/Yahweasel/libav.js/), which is a port of
@@ -48,7 +48,15 @@ object with, e.g.  `VideoEncoder`, `EncodedVideoChunk`, and `VideoFrame` set to
 either WebCodecs' or LibAVJS-WebCodecs-Polyfill's version. The promise is
 rejected if the configuration is unsupported.
 
-To draw on a `VideoFrame` on a canvas, use `LibAVWebCodecs.canvasDrawImage(ctx,
+For rendering, it is highly recommended that you use
+`LibAVWebCodecs.createImageBitmap` and draw the result on a canvas, rather than
+`LibAVWebCodecs.canvasDrawImage`, which is synchronous.
+`LibAVWebCodecs.createImageBitmap` only accepts the `resizeWidth` and
+`resizeHeight` options, so only the overload
+`LibAVWebCodecs.createImageBitmap(frame, options)` is supported, with `options`
+optional.
+
+If you need the synchronous API, use `LibAVWebCodecs.canvasDrawImage(ctx,
 ...)`. The first argument is the context, and the remaining arguments are as in
 `CanvasRenderingContext2D.drawImage`. It is safe to use `canvasDrawImage` with
 any image type, not just a `VideoFrame`; it will fall through to the original
@@ -102,10 +110,7 @@ codec like H.263+ works in software nearly anywhere.
 
 ## Limitations
 
-Canvas drawable things are supposed to be usable for more than merely
-`CanvasRenderingContext2D.drawImage`, but that method is all that
-LibAVJS-WebCodecs-Polyfill polyfills. In particular, an `ImageBitmap` cannot be
-created from a `VideoFrame`.
+The `createImageBitmap` polyfill is quite limited in the arguments it accepts.
 
 libav.js is surprisingly fast for what it is, but it ain't fast. All audio
 codecs work fine, but video struggles. This is why support for codecs outside

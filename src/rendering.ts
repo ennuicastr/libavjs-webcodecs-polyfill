@@ -25,32 +25,40 @@ declare let LibAV: LibAVJS.LibAVWrapper;
 /* A non-threaded libav.js instance for scaling. This is an any because the
  * type definitions only expose the async versions, but this API requires the
  * _sync methods. */
-let scaler: any = null;
+let scalerSync: any = null;
+
+// A synchronous libav.js instance for scaling.
+let scalerAsync: LibAVJS.LibAV = null;
 
 // The original drawImage
-let origDrawImage: (
-    image: any, sx: number, sy: number, sWidth?: number, sHeight?: number, dx?:
-    number, dy?: number, dWidth?: number, dHeight?: number
-) => void = null;
+let origDrawImage: any = null;
+
+// The original createImageBitmap
+let origCreateImageBitmap: any = null;
 
 /**
  * Load rendering capability.
+ * @param libavOptions  Options to use while loading libav, only asynchronous
  * @param polyfill  Set to polyfill CanvasRenderingContext2D.drawImage
  */
-export async function load(polyfill: boolean) {
-    // Get our scaler
-    scaler = await LibAV.LibAV({noworker: true});
+export async function load(libavOptions: any, polyfill: boolean) {
+    // Get our scalers
+    scalerSync = await LibAV.LibAV({noworker: true});
+    scalerAsync = await LibAV.LibAV(libavOptions);
 
     // Polyfill drawImage
     origDrawImage = CanvasRenderingContext2D.prototype.drawImage;
     if (polyfill)
         (<any> CanvasRenderingContext2D.prototype).drawImage = drawImagePolyfill;
+
+    // Polyfill createImageBitmap
+    origCreateImageBitmap = window.createImageBitmap;
+    if (polyfill)
+        (<any> window).createImageBitmap = createImageBitmap;
 }
 
 /**
- * Draw this video frame on this canvas. FIXME: This is supposed to be
- * synchronous, but is actually asynchronous. Need a fully-synchronous version
- * of libav.js for this to "work".
+ * Draw this video frame on this canvas, synchronously.
  * @param ctx  CanvasRenderingContext2D to draw on
  * @param image  VideoFrame (or anything else) to draw
  * @param sx  Source X position OR destination X position
@@ -99,51 +107,49 @@ export function canvasDrawImage(
     }
 
     // Convert the format to libav.js
-    let format: number = scaler.AV_PIX_FMT_RGBA;
+    let format: number = scalerSync.AV_PIX_FMT_RGBA;
     switch (image.format) {
         case "I420":
-            format = scaler.AV_PIX_FMT_YUV420P;
+            format = scalerSync.AV_PIX_FMT_YUV420P;
             break;
 
         case "I420A":
-            format = scaler.AV_PIX_FMT_YUVA420P;
+            format = scalerSync.AV_PIX_FMT_YUVA420P;
             break;
 
         case "I422":
-            format = scaler.AV_PIX_FMT_YUV422P;
+            format = scalerSync.AV_PIX_FMT_YUV422P;
             break;
 
         case "I444":
-            format = scaler.AV_PIX_FMT_YUV444P;
+            format = scalerSync.AV_PIX_FMT_YUV444P;
             break;
 
         case "NV12":
-            format = scaler.AV_PIX_FMT_NV12;
+            format = scalerSync.AV_PIX_FMT_NV12;
             break;
 
         case "RGBA":
         case "RGBX":
-            format = scaler.AV_PIX_FMT_RGBA;
+            format = scalerSync.AV_PIX_FMT_RGBA;
             break;
 
         case "BGRA":
         case "BGRX":
-            format = scaler.AV_PIX_FMT_BGRA;
+            format = scalerSync.AV_PIX_FMT_BGRA;
             break;
     }
 
-    /* Convert the frame. This uses promises because of libav.js, but because
-     * we're using a non-threaded version, the promises will actually all
-     * resolve synchronously. */
+    // Convert the frame synchronously
     let frameData = new ImageData(dWidth, dHeight);
 
-    const sctx = scaler.sws_getContext_sync(
+    const sctx = scalerSync.sws_getContext_sync(
         image.codedWidth, image.codedHeight, format,
-        dWidth, dHeight, scaler.AV_PIX_FMT_RGBA,
+        dWidth, dHeight, scalerSync.AV_PIX_FMT_RGBA,
         2, 0, 0, 0
     );
-    const inFrame = scaler.av_frame_alloc_sync();
-    const outFrame = scaler.av_frame_alloc_sync();
+    const inFrame = scalerSync.av_frame_alloc_sync();
+    const outFrame = scalerSync.av_frame_alloc_sync();
 
     // Convert the data (FIXME: duplication)
     const rawU8 = image._libavGetData();
@@ -167,7 +173,7 @@ export function canvasDrawImage(
     }
 
     // Copy it in
-    scaler.ff_copyin_frame_sync(inFrame, {
+    scalerSync.ff_copyin_frame_sync(inFrame, {
         data: raw,
         format,
         width: image.codedWidth,
@@ -175,10 +181,10 @@ export function canvasDrawImage(
     });
 
     // Rescale
-    scaler.sws_scale_frame_sync(sctx, outFrame, inFrame);
+    scalerSync.sws_scale_frame_sync(sctx, outFrame, inFrame);
 
     // Get the data back out again
-    const frame = scaler.ff_copyout_frame_sync(outFrame);
+    const frame = scalerSync.ff_copyout_frame_sync(outFrame);
 
     // Transfer all the data
     let idx = 0;
@@ -195,9 +201,9 @@ export function canvasDrawImage(
     ctx.putImageData(frameData, dx, dy);
 
     // And clean up
-    scaler.av_frame_free_js_sync(outFrame),
-    scaler.av_frame_free_js_sync(inFrame),
-    scaler.sws_freeContext_sync(sctx)
+    scalerSync.av_frame_free_js_sync(outFrame);
+    scalerSync.av_frame_free_js_sync(inFrame);
+    scalerSync.sws_freeContext_sync(sctx);
 }
 
 /**
@@ -214,4 +220,133 @@ function drawImagePolyfill(
         );
     }
     return origDrawImage.apply(this, arguments);
+}
+
+/**
+ * Create an ImageBitmap from this drawable, asynchronously. NOTE:
+ * Sub-rectangles are not implemented for VideoFrames, so only options is
+ * available, and there, only scaling is available.
+ * @param image  VideoFrame (or anything else) to draw
+ * @param options  Other options
+ */
+export function createImageBitmap(
+    image: vf.VideoFrame, opts: {
+        resizeWidth?: number,
+        resizeHeight?: number
+    } = {}
+): Promise<ImageBitmap> {
+    if (!(image instanceof vf.VideoFrame)) {
+        // Just use the original
+        return origCreateImageBitmap.apply(window, arguments);
+    }
+
+    // Convert the format to libav.js
+    let format: number = scalerAsync.AV_PIX_FMT_RGBA;
+    switch (image.format) {
+        case "I420":
+            format = scalerAsync.AV_PIX_FMT_YUV420P;
+            break;
+
+        case "I420A":
+            format = scalerAsync.AV_PIX_FMT_YUVA420P;
+            break;
+
+        case "I422":
+            format = scalerAsync.AV_PIX_FMT_YUV422P;
+            break;
+
+        case "I444":
+            format = scalerAsync.AV_PIX_FMT_YUV444P;
+            break;
+
+        case "NV12":
+            format = scalerAsync.AV_PIX_FMT_NV12;
+            break;
+
+        case "RGBA":
+        case "RGBX":
+            format = scalerAsync.AV_PIX_FMT_RGBA;
+            break;
+
+        case "BGRA":
+        case "BGRX":
+            format = scalerAsync.AV_PIX_FMT_BGRA;
+            break;
+    }
+
+    // Normalize arguments
+    const dWidth =(typeof opts.resizeWidth === "number")
+        ? opts.resizeWidth : image.displayWidth;
+    const dHeight =(typeof opts.resizeHeight === "number")
+        ? opts.resizeHeight : image.displayHeight;
+
+    // Convert the frame
+    let frameData = new ImageData(dWidth, dHeight);
+
+    return (async () => {
+       const [sctx, inFrame, outFrame] = await Promise.all([
+           scalerAsync.sws_getContext(
+               image.codedWidth, image.codedHeight, format,
+               dWidth, dHeight, scalerAsync.AV_PIX_FMT_RGBA, 2, 0, 0, 0
+           ),
+           scalerAsync.av_frame_alloc(),
+           scalerAsync.av_frame_alloc()
+       ]);
+
+       // Convert the data (FIXME: duplication)
+       const rawU8 = image._libavGetData();
+       let rawIdx = 0;
+       const raw: Uint8Array[][] = [];
+       const planes = vf.numPlanes(image.format);
+       for (let p = 0; p < planes; p++) {
+           const plane: Uint8Array[] = [];
+           raw.push(plane);
+           const sb = vf.sampleBytes(image.format, p);
+           const hssf =
+               vf.horizontalSubSamplingFactor(image.format, p);
+           const vssf =
+               vf.verticalSubSamplingFactor(image.format, p);
+           const w = ~~(image.codedWidth * sb / hssf);
+           const h = ~~(image.codedHeight / vssf);
+           for (let y = 0; y < h; y++) {
+               plane.push(rawU8.subarray(rawIdx, rawIdx + w));
+               rawIdx += w;
+           }
+       }
+
+       const [, , frame] = await Promise.all([
+           // Copy it in
+           scalerAsync.ff_copyin_frame(inFrame, {
+               data: raw,
+               format,
+               width: image.codedWidth,
+               height: image.codedHeight
+           }),
+
+           // Rescale
+           scalerAsync.sws_scale_frame(sctx, outFrame, inFrame),
+
+           // Get the data back out again
+           scalerAsync.ff_copyout_frame(outFrame),
+
+           // And clean up
+           scalerAsync.av_frame_free_js(outFrame),
+           scalerAsync.av_frame_free_js(inFrame),
+           scalerAsync.sws_freeContext(sctx)
+       ]);
+
+       // Transfer all the data
+       let idx = 0;
+       for (let i = 0; i < frame.data.length; i++) {
+           const plane = frame.data[i];
+           for (let y = 0; y < plane.length; y++) {
+               const row = plane[y];
+               frameData.data.set(row, idx);
+               idx += row.length;
+           }
+       }
+
+       // And make the ImageBitmap
+       return await origCreateImageBitmap(frameData);
+    })();
 }

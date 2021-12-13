@@ -138,8 +138,9 @@ function sampleOutputVideo(v, fps) {
     const ctx = canvas.getContext("2d");
 
     let idx = 0;
-    const interval = setInterval(function() {
-        LibAVWebCodecs.canvasDrawImage(ctx, v[idx++], 0, 0);
+    const interval = setInterval(async () => {
+        const image = await LibAVWebCodecs.createImageBitmap(v[idx++]);
+        ctx.drawImage(image, 0, 0);
 
         if (idx >= v.length)
             idx = 0;

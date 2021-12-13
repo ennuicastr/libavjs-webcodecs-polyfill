@@ -68,8 +68,11 @@
             decoder.decode(data);
         }
 
-        function decoderOutput(frame) {
-            LibAVWebCodecs.canvasDrawImage(ctx, frame, 0, 0, 640, 360);
+        async function decoderOutput(frame) {
+            const image = await LibAVWebCodecs.createImageBitmap(frame,
+                {resizeWidth: 640, resizeHeight: 360});
+            ctx.drawImage(image, 0, 0);
+            image.close();
         }
 
         // And encode

@@ -78,7 +78,7 @@ export async function load(options: {
         }
     }
 
-    await rendering.load(!!options.polyfill);
+    await rendering.load(libavOptions, !!options.polyfill);
 }
 
 // EncodedAudioChunk
@@ -144,6 +144,7 @@ export type VideoEncoderSupport = venc.VideoEncoderSupport;
 
 // Rendering
 export const canvasDrawImage = rendering.canvasDrawImage;
+export const createImageBitmap = rendering.createImageBitmap;
 
 // Misc
 export type CodecState = misc.CodecState;
