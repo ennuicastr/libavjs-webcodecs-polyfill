@@ -23,8 +23,10 @@
         const encoder = new AudioEncoder({
             output: (packet, metadata) => {
                 packets.push(packet);
-                if (metadata && !extradata)
-                    extradata = new Uint8Array(metadata.buffer || metadata);
+                if (!extradata && metadata && metadata.decoderConfig && metadata.decoderConfig.description) {
+                    const desc = metadata.decoderConfig.description;
+                    extradata = new Uint8Array(desc.buffer || desc);
+                }
             },
             error: x => alert(x)
         });
