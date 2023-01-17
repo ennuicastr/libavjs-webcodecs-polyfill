@@ -67,7 +67,7 @@ LibAVJS-WebCodecs-Polyfill, then `drawImage` itself will also support
 
 ## Compatibility
 
-LibAVJS-WebCodecs-Polyfill should be up to date with revision `ff5738bb8`
+LibAVJS-WebCodecs-Polyfill should be up to date with revision `8b6a91ebd`
 (2021-11-16) of the WebCodecs specification.
 
 Depending on the libav.js version used, LibAVJS-WebCodecs-Polyfill supports the

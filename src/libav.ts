@@ -150,6 +150,9 @@ export function decoder(
             case "ulaw":
             case "alaw":
             case "avc1":
+            case "avc3":
+            case "hev1":
+            case "hvc1":
                 return null;
 
             // Unrecognized
