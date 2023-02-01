@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -26,20 +26,48 @@ import type * as LibAVJS from "libav.js";
 
 export class AudioDecoder {
     constructor(init: AudioDecoderInit) {
-        this._output = init.output;
-        this._error = init.error;
+        // 1. Let d be a new AudioDecoder object.
+        // 2. Assign a new queue to [[control message queue]].
+        this._queue = Promise.all([]);
 
-        this.state = "unconfigured";
-        this.decodeQueueSize = 0;
-
-        this._p = Promise.all([]);
+        // 3. Assign false to [[message queue blocked]].
+        // 4. Assign null to [[codec implementation]].
         this._libav = null;
         this._codec = this._c = this._pkt = this._frame = 0;
+
+        /* 5. Assign the result of starting a new parallel queue to [[codec work
+         * queue]]. */
+        // (shared with control message queue)
+
+        // 6. Assign false to [[codec saturated]].
+
+        // 7. Assign init.output to [[output callback]].
+        this._output = init.output;
+
+        // 8. Assign init.error to [[error callback]].
+        this._error = init.error;
+
+        // 9. Assign true to [[key chunk required]].
+        // (unused in audio codecs supported by this polyfill)
+
+        // 10. Assign "unconfigured" to [[state]]
+        this.state = "unconfigured";
+
+        // 11. Assign 0 to [[decodeQueueSize]].
+        this.decodeQueueSize = 0;
+
+        // 12. Assign a new list to [[pending flush promises]].
+        // (shared with control message queue)
+
+        // 13. Assign false to [[dequeue event scheduled]].
+        // 14. Return d.
     }
 
     /* NOTE: These should technically be readonly, but I'm implementing them as
      * plain fields, so they're writable */
+    // readonly attribute
     state: misc.CodecState;
+    // readonly attribute unsigned long
     decodeQueueSize: number;
 
     private _output: AudioDataOutputCallback;
@@ -56,8 +84,6 @@ export class AudioDecoder {
     private _frame: number;
 
     configure(config: AudioDecoderConfig): void {
-        const self = this;
-
         // 1. If config is not a valid AudioDecoderConfig, throw a TypeError.
         // NOTE: We don't support sophisticated codec string parsing (yet)
 
@@ -67,38 +93,52 @@ export class AudioDecoder {
 
         // Free any internal state
         if (this._libav)
-            this._p = this._p.then(() => this._free());
+            this._queue =
+                this._queue.then(() => this._free());
 
         // 3. Set [[state]] to "configured".
         this.state = "configured";
 
         // 4. Set [[key chunk required]] to true.
-        // NOTE: Not implemented
+        // (unused by audio codecs)
 
         // 5. Queue a control message to configure the decoder with config.
-        this._p = this._p.then(async function() {
+        this._queue = this._queue.then(async () => {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
             const supported = libavs.decoder(config.codec);
 
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
-            if (supported) {
-                const libav = self._libav = await libavs.get();
-
-                // Initialize
-                [self._codec, self._c, self._pkt, self._frame] =
-                    await libav.ff_init_decoder(supported.codec);
-                await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
-            }
+            if (supported)
+                const libav = this._libav = await libavs.get();
 
             /* 3. Otherwise, run the Close AudioDecoder algorithm with
-             * NotSupportedError DOMException. */
+             * NotSupportedError and return "processed". */
             else {
-                self._closeAudioDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
+                this._closeAudioDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
+                return "processed";
             }
-            
+
+            // 4. Assign true to [[message queue blocked]].
+
+            // 5. Enqueue the following steps to [[codec work queue]]:
+            // (note: shared queue)
+            {
+                // 1. Configure [[codec implementation]] with config.
+                [this._codec, this._c, this._pkt, this._frame] =
+                    await libav.ff_init_decoder(supported.codec);
+                await libav.AVCodecContext_time_base_s(this._c, 1, 1000);
+
+                // 2. Assign false to [[message queue blocked]].
+                // 3. Queue a task to Process the control message queue.
+            }
+
+            // 6. Return "processed".
+            return "processed";
         }).catch(this._error);
+
+        // 6. Process the control message queue.
     }
 
     // Our own algorithm, close libav
@@ -122,13 +162,15 @@ export class AudioDecoder {
 
         /* 3. Clear [[codec implementation]] and release associated system
          * resources. */
-        this._p = this._p.then(() => this._free());
+        this._queue =
+            this._queue.then(() => this._free());
 
         /* 4. If exception is not an AbortError DOMException, queue a task on
          * the control thread event loop to invoke the [[error callback]] with
          * exception. */
         if (exception.name !== "AbortError")
-            this._p = this._p.then(() => { this._error(exception); });
+            this._queue =
+                this._queue.then(() => { this._error(exception); });
     }
 
     private _resetAudioDecoder(exception: DOMException) {
@@ -140,75 +182,85 @@ export class AudioDecoder {
         this.state = "unconfigured";
 
         // ... really, we're just going to free it now
-        this._p = this._p.then(() => this._free());
+        this._queue =
+            this._queue.then(() => this._free());
     }
 
     decode(chunk: eac.EncodedAudioChunk) {
-        const self = this;
-
         // 1. If [[state]] is not "configured", throw an InvalidStateError.
         if (this.state !== "configured")
             throw new DOMException("Unconfigured", "InvalidStateError");
 
-        // 2. If [[key chunk required]] is true:
-        //    1. If chunk.[[type]] is not key, throw a DataError.
-        /*    2. Implementers SHOULD inspect the chunk’s [[internal data]] to
-         *    verify that it is truly a key chunk. If a mismatch is detected,
-         *    throw a DataError. */
-        //    3. Otherwise, assign false to [[key chunk required]].
+        // 2. If [[key chunk required]] is true: ...
+        // (note: not required for audio codecs)
 
         // 3. Increment [[decodeQueueSize]].
         this.decodeQueueSize++;
 
         // 4. Queue a control message to decode the chunk.
-        this._p = this._p.then(async function() {
-            const libav = self._libav;
-            const c = self._c;
-            const pkt = self._pkt;
-            const frame = self._frame;
+        this._queue = this._queue.then(async () => {
+            const libav = this._libav;
+            const c = this._c;
+            const pkt = this._pkt;
+            const frame = this._frame;
 
             let decodedOutputs: LibAVJS.Frame[] = null;
 
-            // 1. Attempt to use [[codec implementation]] to decode the chunk.
-            try {
-                // Convert to a libav packet
-                const ptsFull = Math.floor(chunk.timestamp / 1000);
-                const pts = ptsFull % 0x100000000;
-                const ptshi = ~~(ptsFull / 0x100000000);
-                const packet: LibAVJS.Packet = {
-                    data: chunk._libavGetData(),
-                    pts,
-                    ptshi,
-                    dts: pts,
-                    dtshi: ptshi
-                };
-                if (chunk.duration) {
-                    packet.duration = Math.floor(chunk.duration / 1000);
-                    packet.durationhi = 0;
+            // 1. If [[codec saturated]] equals true, return "not processed".
+            /* 2. If decoding chunk will cause the [[codec implementation]] to
+             * become saturated, assign true to [[codec saturated]]. */
+
+            /* 3. Decrement [[decodeQueueSize]] and run the Schedule Dequeue
+             * Event algorithm. */
+            this.decodeQueueSize--;
+            // (note: shared queue, so no further algorithm needed)
+
+            // 4. Enqueue the following steps to the [[codec work queue]]:
+            // (note: shared queue)
+            {
+                /* 1. Attempt to use [[codec implementation]] to decode the
+                 * chunk. */
+                try {
+                    // Convert to a libav packet
+                    const ptsFull = Math.floor(chunk.timestamp / 1000);
+                    const pts = ptsFull % 0x100000000;
+                    const ptshi = ~~(ptsFull / 0x100000000);
+                    const packet: LibAVJS.Packet = {
+                        data: chunk._libavGetData(),
+                        pts,
+                        ptshi,
+                        dts: pts,
+                        dtshi: ptshi
+                    };
+                    if (chunk.duration) {
+                        packet.duration = Math.floor(chunk.duration / 1000);
+                        packet.durationhi = 0;
+                    }
+
+                    decodedOutputs =
+                        await libav.ff_decode_multi(c, pkt, frame, [packet]);
+
+                /* 2. If decoding results in an error, queue a task on the
+                 * control thread event loop to run the Close AudioDecoder
+                 * algorithm with EncodingError. */
+                } catch (ex) {
+                    this._p = this._p.then(() => {
+                        this._closeAudioDecoder(ex);
+                    });
                 }
 
-                decodedOutputs = await libav.ff_decode_multi(c, pkt, frame, [packet]);
+                /* 3. If [[codec saturated]] equals true and [[codec
+                 * implementation]] is no longer saturated, queue a task to
+                 * perform the following steps: ... */
 
-            /* 2. If decoding results in an error, queue a task on the control
-             * thread event loop to run the Close AudioDecoder algorithm with
-             * EncodingError. */
-            } catch (ex) {
-                self._p = self._p.then(() => {
-                    self._closeAudioDecoder(ex);
-                });
+                /* 4. Let decoded outputs be a list of decoded audio data
+                 * outputs emitted by [[codec implementation]]. */
+                /* 5. If decoded outputs is not empty, queue a task on the
+                 * control thread event loop to run the Output AudioData
+                 * algorithm with decoded outputs. */
+                if (decodedOutputs)
+                    this._outputAudioData(decodedOutputs);
             }
-
-            /* 3. Queue a task on the control thread event loop to decrement
-             * [[decodeQueueSize]]. */
-            self.decodeQueueSize--;
-
-            /* 4. Let decoded outputs be a list of decoded audio data outputs
-             * emitted by [[codec implementation]]. */
-            /* 5. If decoded outputs is not empty, queue a task on the control
-             * thread event loop to run the Output AudioData algorithm with
-             * decoded outputs. */
-            if (decodedOutputs)
-                self._outputAudioData(decodedOutputs);
 
         }).catch(this._error);
     }
@@ -300,33 +352,57 @@ export class AudioDecoder {
     }
 
     flush(): Promise<void> {
-        const self = this;
+        /* 1. If [[state]] is not "configured", return a promise rejected with
+         * InvalidStateError DOMException. */
+        if (this.state !== "configured")
+            throw new DOMException("Unconfigured", "InvalidStateError");
 
-        const ret = this._p.then(async function() {
-            if (!self._c)
-                return;
+        // 2. Set [[key chunk required]] to true.
+        // (note: not needed for audio codecs)
 
-            // Make sure any last data is flushed
-            const libav = self._libav;
-            const c = self._c;
-            const pkt = self._pkt;
-            const frame = self._frame;
+        // 3. Let promise be a new Promise.
+        // 4. Append promise to [[pending flush promises]].
+        // (note: our queue is already promises)
+
+        // 5. Queue a control message to flush the codec with promise.
+        const promise = this._queue.then(async () => {
+            /* 1. Signal [[codec implementation]] to emit all internal pending
+             * outputs. */
+            /* 2. Let decoded outputs be a list of decoded audio data outputs
+             * emitted by [[codec implementation]]. */
+            const libav = this._libav;
+            const c = this._c;
+            const pkt = this._pkt;
+            const frame = this._frame;
 
             let decodedOutputs: LibAVJS.Frame[] = null;
 
             try {
                 decodedOutputs = await libav.ff_decode_multi(c, pkt, frame, [], true);
             } catch (ex) {
-                self._p = self._p.then(() => {
-                    self._closeAudioDecoder(ex);
+                this._queue = this._queue.then(() => {
+                    this._closeAudioDecoder(ex);
                 });
             }
 
-            if (decodedOutputs)
-                self._outputAudioData(decodedOutputs);
+            // 3. Queue a task to perform these steps:
+            // (note: shared queue)
+            {
+                /* 1. If decoded outputs is not empty, run the Output AudioData
+                 * algorithm with decoded outputs. */
+                if (decodedOutputs && decodedOutputs.length)
+                    this._outputAudioData(decodedOutputs);
+
+                // 2. Remove promise from [[pending flush promises]].
+                // 3. Resolve promise.
+            }
         });
-        this._p = ret;
-        return ret;
+
+        // 6. Process the control message queue.
+        this._queue = promise;
+
+        // 7. Return promise.
+        return promise;
     }
 
     reset(): void {
@@ -340,24 +416,71 @@ export class AudioDecoder {
     static async isConfigSupported(
         config: AudioDecoderConfig
     ): Promise<AudioDecoderSupport> {
+        /* 1. If config is not a valid AudioDecoderConfig, return a promise
+         * rejected with TypeError. */
         const dec = libavs.decoder(config.codec);
-        let supported = false;
-        if (dec) {
-            const libav = await libavs.get();
-            try {
-                const [, c, pkt, frame] = await libav.ff_init_decoder(dec.codec);
-                await libav.ff_free_decoder(c, pkt, frame);
-                supported = true;
-            } catch (ex) {}
-            await libavs.free(libav);
+        if (!dec)
+            throw new TypeError("Unsupported codec");
+
+        // 2. Let p be a new Promise.
+        /* 3. Let checkSupportQueue be the result of starting a new parallel
+         * queue. */
+        // 4. Enqueue the following steps to checkSupportQueue:
+        // (note: shared queue)
+        {
+            /* 1. Let decoderSupport be a newly constructed AudioDecoderSupport,
+             * initialized as follows: */
+            const decoderSupport: AudioDecoderSupport = {
+                /* 1. Set config to the result of running the Clone
+                 * Configuration algorithm with config. */
+                config: misc.cloneConfig(
+                    config, ["codec", "sampleRate", "numberOfChannels"]),
+
+                /* 2. Set supported to the result of running the Check
+                 * Configuration Support algorithm with config. */
+                supported: await this._checkConfigurationSupport(dec)
+            };
+
+            // 2. Resolve p with decoderSupport.
+            return decoderSupport;
         }
-        return {
-            supported,
-            config: misc.cloneConfig(
-                config,
-                ["codec", "sampleRate", "numberOfChannels"]
-            )
-        };
+
+        // 3. Return p.
+    }
+
+    private async _checkConfigurationSupport(
+        dec: libavs.LibAVJSCodec
+    ): Promise<AudioDecoderSupport> {
+        /* 1. If config is an AudioDecoderConfig or VideoDecoderConfig and the
+         * User Agent can’t provide a codec that can decode the exact profile
+         * (where present), level (where present), and constraint bits (where
+         * present) indicated by the codec string in config.codec, return false.
+         * */
+        // 2. If config is an AudioEncoderConfig or VideoEncoderConfig:
+            /* 1. If the codec string in config.codec contains a profile and the
+             * User Agent can’t provide a codec that can encode the exact
+             * profile indicated by config.codec, return false. */
+            /* 2. If the codec string in config.codec contains a level and the
+             * User Agent can’t provide a codec that can encode to a level less
+             * than or equal to the level indicated by config.codec, return
+             * false. */
+            /* 3. If the codec string in config.codec contains constraint bits
+             * and the User Agent can’t provide a codec that can produce an
+             * encoded bitstream at least as constrained as indicated by
+             * config.codec, return false. */
+        /* 3. If the User Agent can provide a codec to support all entries of
+         * the config, including applicable default values for keys that are not
+         * included, return true. */
+        // 4. Otherwise, return false.
+        let supported = false;
+        const libav = await libavs.get();
+        try {
+            const [, c, pkt, frame] = await libav.ff_init_decoder(dec.codec);
+            await libav.ff_free_decoder(c, pkt, frame);
+            supported = true;
+        } catch (ex) {}
+        await libavs.free(libav);
+        return supported;
     }
 }
 
