@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -55,9 +55,9 @@ export async function load(options: {
             libavOptions.noworker = true;
 
             // Load libav
-            LibAV = <any> {base: "https://unpkg.com/libav.js@3.6.4"};
+            LibAV = <any> {base: "https://unpkg.com/libav.js@3.10.5"};
             const scr = document.createElement("script");
-            scr.src = "https://unpkg.com/libav.js@3.6.4/libav-3.6.4.4.1-webm-opus-flac.js";
+            scr.src = "https://unpkg.com/libav.js@3.10.5/libav-3.10.5.1.2-webm-opus-flac.js";
             scr.onload = res;
             scr.onerror = rej;
             document.body.appendChild(scr);
