@@ -1,7 +1,10 @@
 all: libavjs-webcodecs-polyfill.min.js
 
-libavjs-webcodecs-polyfill.min.js: src/*.ts node_modules/.bin/browserify
-	./src/build.js -m > $@
+libavjs-webcodecs-polyfill.js: src/*.ts node_modules/.bin/browserify
+	./src/build.js > $@
+
+libavjs-webcodecs-polyfill.min.js: libavjs-webcodecs-polyfill.js node_modules/.bin/browserify
+	./node_modules/.bin/minify --js < $< > $@
 
 better-samples:
 	for i in samples/*/; do \
@@ -15,4 +18,4 @@ node_modules/.bin/browserify:
 	npm install
 
 clean:
-	rm -f libavjs-webcodecs-polyfill.min.js
+	rm -f libavjs-webcodecs-polyfill.js libavjs-webcodecs-polyfill.min.js
