@@ -487,6 +487,22 @@ export interface AudioEncoderConfig {
     sampleRate?: number;
     numberOfChannels?: number;
     bitrate?: number;
+
+    // Opus-specific
+    opus?: {
+        format?: "opus",
+        frameDuration?: number,
+        complexity?: number,
+        packetlossperc?: number,
+        useinbandfec?: boolean,
+        usedtx?: boolean
+    },
+
+    // FLAC-specific
+    flac?: {
+        blockSize?: number,
+        compressLevel?: number
+    }
 }
 
 export interface AudioEncoderSupport {
