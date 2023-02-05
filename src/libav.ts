@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -192,6 +192,18 @@ export function encoder(
             case "flac":
                 ctx.sample_fmt = 2 /* S32 */;
                 ctx.bit_rate = 0;
+
+                if (typeof config.flac === "object" &&
+                    config.flac !== null) {
+                    const flac: any = config.flac;
+                    // FIXME: Check block size
+                    if (typeof flac.blockSize === "number")
+                        ctx.frame_size = flac.blockSize;
+                    if (typeof flac.compressLevel === "number") {
+                        // Not supported
+                        return null;
+                    }
+                }
                 break;
 
             case "opus":
