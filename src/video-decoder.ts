@@ -275,21 +275,24 @@ export class VideoDecoder {
             {
                 let size = 0;
                 const planes = vf.numPlanes(format);
+                const sbs = [];
+                const hssfs = [];
+                const vssfs = [];
                 for (let i = 0; i < planes; i++) {
-                    size += frame.width * frame.height *
-                        vf.sampleBytes(format, i) /
-                        vf.horizontalSubSamplingFactor(format, i) /
-                        vf.verticalSubSamplingFactor(format, i);
+                    sbs.push(vf.sampleBytes(format, i));
+                    hssfs.push(vf.horizontalSubSamplingFactor(format, i));
+                    vssfs.push(vf.verticalSubSamplingFactor(format, i));
+                }
+                for (let i = 0; i < planes; i++) {
+                    size += frame.width * frame.height * sbs[i] / hssfs[i]
+                        / vssfs[i];
                 }
                 raw = new Uint8Array(size);
                 let off = 0;
                 for (let i = 0; i < planes; i++) {
                     const fd = frame.data[i];
-                    for (let j = 0;
-                         j < frame.height / vf.verticalSubSamplingFactor(format, i);
-                         j++) {
-                        const part = fd[j].subarray(0, frame.width /
-                            vf.horizontalSubSamplingFactor(format, i));
+                    for (let j = 0; j < frame.height / vssfs[i]; j++) {
+                        const part = fd[j].subarray(0, frame.width / hssfs[i]);
                         raw.set(part, off);
                         off += part.length;
                     }
