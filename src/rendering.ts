@@ -75,7 +75,8 @@ export function canvasDrawImage(
     sy: number, sWidth?: number, sHeight?: number, dx?: number, dy?: number,
     dWidth?: number, dHeight?: number
 ): void {
-    if (!(image instanceof vf.VideoFrame)) {
+    // @ts-ignore
+    if (!(image._data)) {
         // Just use the original
         return origDrawImage.apply(ctx, Array.prototype.slice.call(arguments, 1));
     }
@@ -152,6 +153,10 @@ export function canvasDrawImage(
     const outFrame = scalerSync.av_frame_alloc_sync();
 
     // Convert the data (FIXME: duplication)
+    if (typeof image._libavGetData == "undefined") {
+        // @ts-ignore
+        image._libavGetData = () => image._data
+    }
     const rawU8 = image._libavGetData();
     let rawIdx = 0;
     const raw: Uint8Array[][] = [];
@@ -294,6 +299,10 @@ export function createImageBitmap(
        ]);
 
        // Convert the data (FIXME: duplication)
+       if (typeof image._libavGetData == "undefined") {
+           // @ts-ignore
+           image._libavGetData = () => image._data
+       }
        const rawU8 = image._libavGetData();
        let rawIdx = 0;
        const raw: Uint8Array[][] = [];
