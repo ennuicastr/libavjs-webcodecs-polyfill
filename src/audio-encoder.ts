@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -487,6 +487,22 @@ export interface AudioEncoderConfig {
     sampleRate?: number;
     numberOfChannels?: number;
     bitrate?: number;
+
+    // Opus-specific
+    opus?: {
+        format?: "opus",
+        frameDuration?: number,
+        complexity?: number,
+        packetlossperc?: number,
+        useinbandfec?: boolean,
+        usedtx?: boolean
+    },
+
+    // FLAC-specific
+    flac?: {
+        blockSize?: number,
+        compressLevel?: number
+    }
 }
 
 export interface AudioEncoderSupport {

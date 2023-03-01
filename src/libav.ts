@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -192,12 +192,47 @@ export function encoder(
             case "flac":
                 ctx.sample_fmt = 2 /* S32 */;
                 ctx.bit_rate = 0;
+
+                if (typeof config.flac === "object" &&
+                    config.flac !== null) {
+                    const flac: any = config.flac;
+                    // FIXME: Check block size
+                    if (typeof flac.blockSize === "number")
+                        ctx.frame_size = flac.blockSize;
+                    if (typeof flac.compressLevel === "number") {
+                        // Not supported
+                        return null;
+                    }
+                }
                 break;
 
             case "opus":
                 outCodec = "libopus";
                 ctx.sample_fmt = 3 /* FLT */;
                 ctx.sample_rate = 48000;
+
+                if (typeof config.opus === "object" &&
+                    config.opus !== null) {
+                    const opus: any = config.opus;
+                    // FIXME: Check frame duration
+                    if (typeof opus.frameDuration === "number")
+                        options.frame_duration = "" + (opus.frameDuration / 1000);
+                    if (typeof opus.complexity !== "undefined") {
+                        // We don't support the complexity option
+                        return null;
+                    }
+                    if (typeof opus.packetlossperc === "number") {
+                        if (opus.packetlossperc < 0 || opus.packetlossperc > 100)
+                            return null;
+                        options.packet_loss = "" + opus.packetlossperc;
+                    }
+                    if (typeof opus.useinbandfec === "boolean")
+                        options.fec = opus.useinbandfec?"1":"0";
+                    if (typeof opus.usedtx === "boolean") {
+                        // We don't support the usedtx option
+                        return null;
+                    }
+                }
                 break;
 
             case "vorbis":
@@ -209,6 +244,7 @@ export function encoder(
             case "av01":
                 video = true;
                 outCodec = "libaom-av1";
+
                 if (config.latencyMode === "realtime") {
                     options.usage = "realtime";
                     options["cpu-used"] = "8";
@@ -223,6 +259,7 @@ export function encoder(
             case "vp09":
                 video = true;
                 outCodec = "libvpx-vp9";
+
                 if (config.latencyMode === "realtime") {
                     options.quality = "realtime";
                     options["cpu-used"] = "8";
@@ -237,6 +274,7 @@ export function encoder(
             case "vp8":
                 video = true;
                 outCodec = "libvpx";
+
                 if (config.latencyMode === "realtime") {
                     options.quality = "realtime";
                     options["cpu-used"] = "8";

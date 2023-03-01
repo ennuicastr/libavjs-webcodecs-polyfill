@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -273,20 +273,28 @@ export class VideoDecoder {
             // 4. data
             let raw: Uint8Array;
             {
-                let ct = 0;
-                for (let i = 0; i < frame.data.length; i++) {
-                    const fd = frame.data[i];
-                    for (let j = 0; j < fd.length; j++)
-                        ct += fd[j].length;
+                let size = 0;
+                const planes = vf.numPlanes(format);
+                const sbs = [];
+                const hssfs = [];
+                const vssfs = [];
+                for (let i = 0; i < planes; i++) {
+                    sbs.push(vf.sampleBytes(format, i));
+                    hssfs.push(vf.horizontalSubSamplingFactor(format, i));
+                    vssfs.push(vf.verticalSubSamplingFactor(format, i));
                 }
-                raw = new Uint8Array(ct);
-                ct = 0;
-                for (let i = 0; i < frame.data.length; i++) {
+                for (let i = 0; i < planes; i++) {
+                    size += frame.width * frame.height * sbs[i] / hssfs[i]
+                        / vssfs[i];
+                }
+                raw = new Uint8Array(size);
+                let off = 0;
+                for (let i = 0; i < planes; i++) {
                     const fd = frame.data[i];
-                    for (let j = 0; j < fd.length; j++) {
-                        const part = fd[j];
-                        raw.set(part, ct);
-                        ct += part.length;
+                    for (let j = 0; j < frame.height / vssfs[i]; j++) {
+                        const part = fd[j].subarray(0, frame.width / hssfs[i]);
+                        raw.set(part, off);
+                        off += part.length;
                     }
                 }
             }

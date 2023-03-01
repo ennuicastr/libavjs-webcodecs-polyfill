@@ -75,7 +75,7 @@ export function canvasDrawImage(
     sy: number, sWidth?: number, sHeight?: number, dx?: number, dy?: number,
     dWidth?: number, dHeight?: number
 ): void {
-    if (!(image instanceof vf.VideoFrame)) {
+    if (!((<any> image)._data)) {
         // Just use the original
         return origDrawImage.apply(ctx, Array.prototype.slice.call(arguments, 1));
     }
@@ -152,7 +152,7 @@ export function canvasDrawImage(
     const outFrame = scalerSync.av_frame_alloc_sync();
 
     // Convert the data (FIXME: duplication)
-    const rawU8 = image._libavGetData();
+    const rawU8 = image._libavGetData ? image._libavGetData() : (<any> image)._data;
     let rawIdx = 0;
     const raw: Uint8Array[][] = [];
     const planes = vf.numPlanes(image.format);
@@ -235,7 +235,7 @@ export function createImageBitmap(
         resizeHeight?: number
     } = {}
 ): Promise<ImageBitmap> {
-    if (!(image instanceof vf.VideoFrame)) {
+    if (!((<any> image)._data)) {
         // Just use the original
         return origCreateImageBitmap.apply(window, arguments);
     }
@@ -294,7 +294,7 @@ export function createImageBitmap(
        ]);
 
        // Convert the data (FIXME: duplication)
-       const rawU8 = image._libavGetData();
+       const rawU8 = image._libavGetData ? image._libavGetData() : (<any> image)._data;
        let rawIdx = 0;
        const raw: Uint8Array[][] = [];
        const planes = vf.numPlanes(image.format);
