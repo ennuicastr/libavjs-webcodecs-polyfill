@@ -205,7 +205,7 @@ export class AudioData {
          * equal [[format]], convert elements to the destFormat
          * AudioSampleFormat while making the copy. */
         if (this.format === destFormat) {
-            const dest = audioView(destFormat,
+            const dest = audioResource(destFormat,
                                    (<any> destination).buffer || destination,
                                    (<any> destination).byteOffset || 0);
 
@@ -222,7 +222,7 @@ export class AudioData {
 
         } else {
             // Actual conversion necessary. Always to f32-planar.
-            const out = audioView(destFormat,
+            const out = audioResource(destFormat,
                                   (<any> destination).buffer || destination,
                                   (<any> destination).byteOffset || 0);
 
@@ -334,7 +334,7 @@ export interface AudioDataCopyToOptions {
  * Check if an AudioDataInit is valid.
  * @param init  Init to check
  */
-function checkAudioDataInit(init: AudioDataInit) {
+function validAudioDataInit(init: AudioDataInit) {
     // 1. If sampleRate less than or equal to 0, return false.
     if (init.sampleRate <= 0)
         return false;

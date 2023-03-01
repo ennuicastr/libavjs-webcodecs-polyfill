@@ -74,7 +74,7 @@ export class AudioDecoder {
     private _error: misc.WebCodecsErrorCallback;
 
     // Event queue
-    private _p: Promise<unknown>;
+    private _queue: Promise<unknown>;
 
     // LibAV state
     private _libav: LibAVJS.LibAV;
@@ -110,15 +110,16 @@ export class AudioDecoder {
 
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
-            if (supported)
-                const libav = this._libav = await libavs.get();
+            // (Done after 3. to get the variable in a useful location)
 
             /* 3. Otherwise, run the Close AudioDecoder algorithm with
              * NotSupportedError and return "processed". */
-            else {
+            if (!supported) {
                 this._closeAudioDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
                 return "processed";
             }
+
+            const libav = this._libav = await libavs.get();
 
             // 4. Assign true to [[message queue blocked]].
 
@@ -244,7 +245,7 @@ export class AudioDecoder {
                  * control thread event loop to run the Close AudioDecoder
                  * algorithm with EncodingError. */
                 } catch (ex) {
-                    this._p = this._p.then(() => {
+                    this._queue = this._queue.then(() => {
                         this._closeAudioDecoder(ex);
                     });
                 }
@@ -438,7 +439,7 @@ export class AudioDecoder {
 
                 /* 2. Set supported to the result of running the Check
                  * Configuration Support algorithm with config. */
-                supported: await this._checkConfigurationSupport(dec)
+                supported: await AudioDecoder._checkConfigurationSupport(dec)
             };
 
             // 2. Resolve p with decoderSupport.
@@ -448,9 +449,9 @@ export class AudioDecoder {
         // 3. Return p.
     }
 
-    private async _checkConfigurationSupport(
+    private static async _checkConfigurationSupport(
         dec: libavs.LibAVJSCodec
-    ): Promise<AudioDecoderSupport> {
+    ): Promise<boolean> {
         /* 1. If config is an AudioDecoderConfig or VideoDecoderConfig and the
          * User Agent can’t provide a codec that can decode the exact profile
          * (where present), level (where present), and constraint bits (where
