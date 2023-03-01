@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -22,22 +22,48 @@ type AudioTypedArray = Uint8Array | Int16Array | Int32Array | Float32Array;
 
 export class AudioData {
     constructor(init: AudioDataInit) {
+        // 1. If init is not a valid AudioDataInit, throw a TypeError.
+        if (!validAudioDataInit(init))
+            throw new TypeError("Invalid AudioDataInit");
+
+        // 2. Let frame be a new AudioData object, initialized as follows:
+
+        //     1. Assign false to [[Detached]].
+        // (We use _data = null to mean detached)
+
+        //     2. Assign init.format to [[format]].
         const format = this.format = init.format;
+
+        //     3. Assign init.sampleRate to [[sample rate]].
         const sampleRate = this.sampleRate = init.sampleRate;
+
+        //     4. Assign init.numberOfFrames to [[number of frames]].
         const numberOfFrames = this.numberOfFrames = init.numberOfFrames;
+
+        //     5. Assign init.numberOfChannels to [[number of channels]].
         this.numberOfChannels = init.numberOfChannels;
+
+        //     6. Assign init.timestamp to [[timestamp]].
         this.timestamp = init.timestamp;
-        const data = this._data =
-            audioView(format, (<any> init.data).buffer || init.data,
-                      (<any> init.data).byteOffset || 0);
+
+        //     7. Let resource be a media resource containing a copy of init.data.
+        //     8. Let resourceReference be a reference to resource.
+        //     9. Assign resourceReference to [[resource reference]].
+        this._data =
+            audioResource(format, (<any> init.data).buffer || init.data, (<any> init.data).byteOffset || 0);
+
+        // 3. Return frame.
+
+        // We additionally precalculate the duration so that it's not a getter
         this.duration = numberOfFrames / sampleRate * 1000000;
     }
 
-    readonly format: AudioSampleFormat;
-    readonly sampleRate: number;
-    readonly numberOfFrames: number;
-    readonly numberOfChannels: number;
-    readonly duration: number; // microseconds
+    // NOTE: These are meant to be readonly, but also the close algorithm changes them...
+    format: AudioSampleFormat;
+    sampleRate: number;
+    numberOfFrames: number;
+    numberOfChannels: number;
+    duration: number; // microseconds
     readonly timestamp: number; // microseconds
 
     private _data: AudioTypedArray;
@@ -256,7 +282,25 @@ export class AudioData {
     }
 
     close(): void {
+        // 1. Assign true to data’s [[Detached]] internal slot.
+        // (Done with _data = null)
+
+        // 2. Assign null to data’s [[resource reference]].
         this._data = null;
+
+        // 3. Assign 0 to data’s [[sample rate]].
+        this.sampleRate = 0;
+
+        // 4. Assign 0 to data’s [[number of frames]].
+        this.numberOfFrames = 0;
+
+        // 5. Assign 0 to data’s [[number of channels]].
+        this.numberOfChannels = 0;
+
+        // Assign null to data’s [[format]].
+        this.format = null;
+
+        this.duration = 0;
     }
 }
 
@@ -287,13 +331,52 @@ export interface AudioDataCopyToOptions {
 }
 
 /**
+ * Check if an AudioDataInit is valid.
+ * @param init  Init to check
+ */
+function checkAudioDataInit(init: AudioDataInit) {
+    // 1. If sampleRate less than or equal to 0, return false.
+    if (init.sampleRate <= 0)
+        return false;
+
+    // 2. If numberOfFrames = 0, return false.
+    if (init.numberOfFrames <= 0)
+        return false;
+
+    // 3. If numberOfChannels = 0, return false.
+    if (init.numberOfChannels <= 0)
+        return false;
+
+    // 4. Verify data has enough data by running the following steps:
+
+    //     1. Let totalSamples be the product of multiplying numberOfFrames by numberOfChannels.
+    const totalSamples = init.numberOfFrames * init.numberOfChannels;
+
+    //     2. Let bytesPerSample be the number of bytes per sample, as defined by the format.
+    const bytesPerSample_ = bytesPerSample(init.format);
+
+    //     3. Let totalSize be the product of multiplying bytesPerSample with totalSamples.
+    const totalSize = bytesPerSample_ * totalSamples;
+
+    //     4. Let dataSize be the size in bytes of data.
+    const dataSize = (<any> init.data).buffer ? (<any> init.data).buffer.byteLength : init.data.byteLength;
+
+    //     5. If dataSize is less than totalSize, return false.
+    if (dataSize < totalSize)
+        return false;
+
+    // 5. Return true.
+    return true;
+}
+
+/**
  * Construct the appropriate type of ArrayBufferView for the given sample
- * format and buffer.
+ * format and buffer (a media resource, in WebCodecs parlance).
  * @param format  Sample format
  * @param buffer  ArrayBuffer (NOT view)
  * @param byteOffset  Offset into the buffer
  */
-function audioView(
+function audioResource(
     format: AudioSampleFormat, buffer: ArrayBuffer, byteOffset: number
 ): AudioTypedArray {
     switch (format) {
