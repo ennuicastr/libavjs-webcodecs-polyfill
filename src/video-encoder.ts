@@ -124,11 +124,11 @@ export class VideoEncoder {
                 const dWidth = config.displayWidth || width;
                 const dHeight = config.displayHeight || height;
                 if (dWidth !== width || dHeight !== height) {
-                    this._nonSquarePixels = true;
-                    this._sar_num = dWidth * height;
-                    this._sar_den = dHeight * width;
+                    self._nonSquarePixels = true;
+                    self._sar_num = dWidth * height;
+                    self._sar_den = dHeight * width;
                 } else {
-                    this._nonSquarePixels = false;
+                    self._nonSquarePixels = false;
                 }
             }
 
@@ -338,9 +338,9 @@ export class VideoEncoder {
                     await Promise.all([
                         libav.ff_copyin_frame(framePtr, frame),
                         libav.sws_scale_frame(sws, swsFrame, framePtr),
-                        this._nonSquarePixels ?
+                        self._nonSquarePixels ?
                             libav.AVFrame_sample_aspect_ratio_s(swsFrame,
-                                this._sar_num, this._sar_den) :
+                                self._sar_num, self._sar_den) :
                             null,
                         libav.AVFrame_pts_s(swsFrame, pts),
                         libav.AVFrame_ptshi_s(swsFrame, ptshi),
@@ -363,10 +363,10 @@ export class VideoEncoder {
                     }
 
                 } else {
-                    if (this._nonSquarePixels) {
+                    if (self._nonSquarePixels) {
                         frame.sample_aspect_ratio = [
-                            this._sar_num,
-                            this._sar_den
+                            self._sar_num,
+                            self._sar_den
                         ];
                     }
 
