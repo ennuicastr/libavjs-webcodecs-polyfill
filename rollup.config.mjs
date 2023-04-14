@@ -1,14 +1,14 @@
 import resolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
-import dts from "rollup-plugin-dts";
+import terser from '@rollup/plugin-terser';
 
 export default [
   {
     input: "src/main.ts",
     output: [
       {
-        file: "dist/index.js",
-        format: "iife",
+        file: "dist/libavjs-webcodecs-polyfill.min.js",
+        format: "umd",
         name: "LibAVWebCodecs",
       },
     ],
@@ -19,13 +19,14 @@ export default [
       typescript({
         tsconfig: "./tsconfig.json",
       }),
+      terser(),
     ],
   },
   {
     input: "src/main.ts",
     output: [
       {
-        file: "dist/index.mjs",
+        file: "dist/libavjs-webcodecs-polyfill.min.mjs",
         format: "es",
       },
     ],
@@ -36,14 +37,7 @@ export default [
       typescript({
         tsconfig: "./tsconfig.json",
       }),
+      terser(),
     ],
-  },
-  {
-    input: "src/main.ts",
-    output: {
-      file: "dist/index.d.ts",
-      format: "es",
-    },
-    plugins: [dts()],
   },
 ];

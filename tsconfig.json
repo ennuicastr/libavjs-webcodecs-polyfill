@@ -1,23 +1,7 @@
 {
     "compilerOptions": {
-        "target": "es2018",
-        "outDir": "build",
-        "declaration": true,
-        "strict": false,
-        "module": "esnext",
-        "noEmitOnError": false,
-
-        "lib": [
-            "es2021",
-            "dom"
-        ],
-        "esModuleInterop": true,
-        "experimentalDecorators": true,
-        "moduleResolution": "Node"
-    },
-    "include": ["src/**/*"],
-    "exclude": [
-        "node_modules",
-        "**/*.spec.ts"
-    ]
+        "target": "es5",
+        "lib": ["es2015", "dom"],
+        "noImplicitAny": false
+    }
 }

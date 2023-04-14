@@ -17,23 +17,23 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-import * as eac from "./encoded-audio-chunk";
-import * as ad from "./audio-data";
-import * as adec from "./audio-decoder";
-import * as aenc from "./audio-encoder";
-
-import * as evc from "./encoded-video-chunk";
-import * as vf from "./video-frame";
-import * as vdec from "./video-decoder";
-import * as venc from "./video-encoder";
-
-import * as rendering from "./rendering";
-
-import * as config from "./config";
-import * as libav from "./libav";
-import * as misc from "./misc";
-
+import * as rendering from "./rendering";;
 import type * as LibAVJS from "libav.js";
+import * as libav from "./libav";
+
+// Re-export as public API.
+export * from "./encoded-audio-chunk";
+export * from "./audio-data";
+export * from "./audio-decoder";
+export * from "./audio-encoder";
+export * from "./encoded-video-chunk";
+export * from "./video-frame";
+export * from "./video-decoder";
+export * from "./video-encoder";
+export * from "./config";
+export * from "./rendering";
+export * from "./misc";
+
 declare let LibAV: LibAVJS.LibAVWrapper;
 
 /**
@@ -81,83 +81,3 @@ export async function load(options: {
     await rendering.load(libavOptions, !!options.polyfill);
 }
 
-// EncodedAudioChunk
-export type EncodedAudioChunk = eac.EncodedAudioChunk;
-export const EncodedAudioChunk = eac.EncodedAudioChunk;
-export type EncodedAudioChunkInit = eac.EncodedAudioChunkInit;
-export type EncodedAudioChunkType = eac.EncodedAudioChunkType;
-
-// AudioData
-export type AudioData = ad.AudioData;
-export const AudioData = ad.AudioData;
-export type AudioDataInit = ad.AudioDataInit;
-export type AudioSampleFormat = ad.AudioSampleFormat;
-export type AudioDataCopyToOptions = ad.AudioDataCopyToOptions;
-
-// AudioDecoder
-export type AudioDecoder = adec.AudioDecoder;
-export const AudioDecoder = adec.AudioDecoder;
-export type AudioDecoderInit = adec.AudioDecoderInit;
-export type AudioDataOutputCallback = adec.AudioDataOutputCallback;
-export type AudioDecoderConfig = adec.AudioDecoderConfig;
-export type AudioDecoderSupport = adec.AudioDecoderSupport;
-
-// AudioEncoder
-export type AudioEncoder = aenc.AudioEncoder;
-export const AudioEncoder = aenc.AudioEncoder;
-export type AudioEncoderInit = aenc.AudioEncoderInit;
-export type EncodedAudioChunkOutputCallback = aenc.EncodedAudioChunkOutputCallback;
-export type AudioEncoderConfig = aenc.AudioEncoderConfig;
-export type AudioEncoderSupport = aenc.AudioEncoderSupport;
-
-// EncodedVideoChunk
-export type EncodedVideoChunk = evc.EncodedVideoChunk;
-export const EncodedVideoChunk = evc.EncodedVideoChunk;
-export type EncodedVideoChunkInit = evc.EncodedVideoChunkInit;
-
-// VideoFrame
-export type VideoFrame = vf.VideoFrame;
-export const VideoFrame = vf.VideoFrame;
-export type VideoFrameInit = vf.VideoFrameInit;
-export type VideoFrameBufferInit = vf.VideoFrameBufferInit;
-export type VideoPixelFormat = vf.VideoPixelFormat;
-export type PlaneLayout = vf.PlaneLayout;
-export type VideoFrameCopyToOptions = vf.VideoFrameCopyToOptions;
-
-// VideoDecoder
-export type VideoDecoder = vdec.VideoDecoder;
-export const VideoDecoder = vdec.VideoDecoder;
-export type VideoDecoderInit = vdec.VideoDecoderInit;
-export type VideoFrameOutputCallback = vdec.VideoFrameOutputCallback;
-export type VideoDecoderConfig = vdec.VideoDecoderConfig;
-export type VideoDecoderSupport = vdec.VideoDecoderSupport;
-
-// VideoEncoder
-export type VideoEncoder = venc.VideoEncoder;
-export const VideoEncoder = venc.VideoEncoder;
-export type VideoEncoderInit = venc.VideoEncoderInit;
-export type EncodedVideoChunkOutputCallback = venc.EncodedVideoChunkOutputCallback;
-export type VideoEncoderConfig = venc.VideoEncoderConfig;
-export type VideoEncoderEncodeOptions = venc.VideoEncoderEncodeOptions;
-export type LatencyMode = venc.LatencyMode;
-export type VideoEncoderSupport = venc.VideoEncoderSupport;
-
-// Rendering
-export const canvasDrawImage = rendering.canvasDrawImage;
-export const createImageBitmap = rendering.createImageBitmap;
-
-// Misc
-export type CodecState = misc.CodecState;
-export type WebCodecsErrorcallback = misc.WebCodecsErrorCallback;
-
-// Configurations/environments
-export type AudioDecoderEnvironment = config.AudioDecoderEnvironment;
-export type VideoDecoderEnvironment = config.VideoDecoderEnvironment;
-export type AudioEncoderEnvironment = config.AudioEncoderEnvironment;
-export type VideoEncoderEnvironment = config.VideoEncoderEnvironment;
-export type UnsupportedException = config.UnsupportedException;
-export const UnsupportedException = config.UnsupportedException;
-export const getAudioDecoder = config.getAudioDecoder;
-export const getVideoDecoder = config.getVideoDecoder;
-export const getAudioEncoder = config.getAudioEncoder;
-export const getVideoEncoder = config.getVideoEncoder;

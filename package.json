@@ -2,9 +2,9 @@
   "name": "libavjs-webcodecs-polyfill",
   "version": "0.3.1",
   "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
-  "main": "dist/index.mjs",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "main": "dist/libavjs-webcodecs-polyfill.mjs",
+  "module": "dist/libavjs-webcodecs-polyfill.mjs",
+  "types": "src/main",
   "scripts": {
     "build": "rollup -c ",
     "dev": "rollup -c --watch",
@@ -32,15 +32,10 @@
     "libav.js": "^3.10.5"
   },
   "devDependencies": {
-    "browser-pack-flat": "^3.5.0",
-    "browserify": "^17.0.0",
-    "minify": "^9.2.0",
-    "tsify": "^5.0.4",
-    "typescript": "^4.4.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-terser": "^0.4.1",
     "@rollup/plugin-typescript": "^9.0.2",
     "rollup": "^3.2.5",
-    "rollup-plugin-base64": "^1.0.1",
-    "rollup-plugin-dts": "^5.3.0"
+    "typescript": "^4.4.4"
   }
 }
