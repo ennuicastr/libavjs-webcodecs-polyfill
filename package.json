@@ -4,7 +4,7 @@
   "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
   "main": "dist/libavjs-webcodecs-polyfill.mjs",
   "module": "dist/libavjs-webcodecs-polyfill.mjs",
-  "types": "src/main",
+  "types": "dist/main.d.ts",
   "scripts": {
     "build": "rollup -c ",
     "dev": "rollup -c --watch",
@@ -36,6 +36,7 @@
     "@rollup/plugin-terser": "^0.4.1",
     "@rollup/plugin-typescript": "^9.0.2",
     "rollup": "^3.2.5",
+    "rollup-plugin-dts": "^5.3.0",
     "typescript": "^4.4.4"
   }
 }
