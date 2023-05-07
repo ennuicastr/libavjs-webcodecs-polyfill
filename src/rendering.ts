@@ -33,6 +33,9 @@ let scalerAsync: LibAVJS.LibAV = null;
 // The original drawImage
 let origDrawImage: any = null;
 
+// The original drawImage Offscreen
+let origDrawImageOffscreen: any = null;
+
 // The original createImageBitmap
 let origCreateImageBitmap: any = null;
 
@@ -47,14 +50,21 @@ export async function load(libavOptions: any, polyfill: boolean) {
     scalerAsync = await LibAV.LibAV(libavOptions);
 
     // Polyfill drawImage
-    origDrawImage = CanvasRenderingContext2D.prototype.drawImage;
-    if (polyfill)
-        (<any> CanvasRenderingContext2D.prototype).drawImage = drawImagePolyfill;
+    if ('CanvasRenderingContext2D' in globalThis) {
+        origDrawImage = CanvasRenderingContext2D.prototype.drawImage;
+        if (polyfill)
+            (<any> CanvasRenderingContext2D.prototype).drawImage = drawImagePolyfill;
+    } 
+    if ('OffscreenCanvasRenderingContext2D' in globalThis) {
+        origDrawImageOffscreen = OffscreenCanvasRenderingContext2D.prototype.drawImage;
+        if (polyfill)
+            (<any> OffscreenCanvasRenderingContext2D.prototype).drawImage = drawImagePolyfillOffscreen;
+    }
 
     // Polyfill createImageBitmap
-    origCreateImageBitmap = window.createImageBitmap;
+    origCreateImageBitmap = globalThis.createImageBitmap;
     if (polyfill)
-        (<any> window).createImageBitmap = createImageBitmap;
+        (<any> globalThis).createImageBitmap = createImageBitmap;
 }
 
 /**
@@ -223,6 +233,22 @@ function drawImagePolyfill(
 }
 
 /**
+ * Polyfill version of offscreenCanvasDrawImage.
+ */
+function drawImagePolyfillOffscreen(
+    image: vf.VideoFrame, sx: number, sy: number, sWidth?: number,
+    sHeight?: number, dx?: number, dy?: number, dWidth?: number,
+    dHeight?: number
+) {
+    if (image instanceof vf.VideoFrame) {
+        return canvasDrawImage(
+            this, image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight
+        );
+    }
+    return origDrawImageOffscreen.apply(this, arguments);
+}
+
+/**
  * Create an ImageBitmap from this drawable, asynchronously. NOTE:
  * Sub-rectangles are not implemented for VideoFrames, so only options is
  * available, and there, only scaling is available.
@@ -237,7 +263,7 @@ export function createImageBitmap(
 ): Promise<ImageBitmap> {
     if (!((<any> image)._data)) {
         // Just use the original
-        return origCreateImageBitmap.apply(window, arguments);
+        return origCreateImageBitmap.apply(globalThis, arguments);
     }
 
     // Convert the format to libav.js
