@@ -81,12 +81,12 @@ export async function getAudioDecoder(
     config: adec.AudioDecoderConfig
 ): Promise<AudioDecoderEnvironment> {
     try {
-        if (typeof (<any> window).AudioDecoder !== "undefined" &&
-            (await (<any> window).AudioDecoder.isConfigSupported(config)).supported) {
+        if (typeof (<any> globalThis).AudioDecoder !== "undefined" &&
+            (await (<any> globalThis).AudioDecoder.isConfigSupported(config)).supported) {
             return {
-                AudioDecoder: (<any> window).AudioDecoder,
-                EncodedAudioChunk: (<any> window).EncodedAudioChunk,
-                AudioData: (<any> window).AudioData
+                AudioDecoder: (<any> globalThis).AudioDecoder,
+                EncodedAudioChunk: (<any> globalThis).EncodedAudioChunk,
+                AudioData: (<any> globalThis).AudioData
             };
         }
     } catch (ex) {}
@@ -111,12 +111,12 @@ export async function getVideoDecoder(
     config: vdec.VideoDecoderConfig
 ): Promise<VideoDecoderEnvironment> {
     try {
-        if (typeof (<any> window).VideoDecoder !== "undefined" &&
-            (await (<any> window).VideoDecoder.isConfigSupported(config)).supported) {
+        if (typeof (<any> globalThis).VideoDecoder !== "undefined" &&
+            (await (<any> globalThis).VideoDecoder.isConfigSupported(config)).supported) {
             return {
-                VideoDecoder: (<any> window).VideoDecoder,
-                EncodedVideoChunk: (<any> window).EncodedVideoChunk,
-                VideoFrame: (<any> window).VideoFrame
+                VideoDecoder: (<any> globalThis).VideoDecoder,
+                EncodedVideoChunk: (<any> globalThis).EncodedVideoChunk,
+                VideoFrame: (<any> globalThis).VideoFrame
             };
         }
     } catch (ex) {}
@@ -141,12 +141,12 @@ export async function getAudioEncoder(
     config: aenc.AudioEncoderConfig
 ): Promise<AudioEncoderEnvironment> {
     try {
-        if (typeof (<any> window).AudioEncoder !== "undefined" &&
-            (await (<any> window).AudioEncoder.isConfigSupported(config)).supported) {
+        if (typeof (<any> globalThis).AudioEncoder !== "undefined" &&
+            (await (<any> globalThis).AudioEncoder.isConfigSupported(config)).supported) {
             return {
-                AudioEncoder: (<any> window).AudioEncoder,
-                EncodedAudioChunk: (<any> window).EncodedAudioChunk,
-                AudioData: (<any> window).AudioData
+                AudioEncoder: (<any> globalThis).AudioEncoder,
+                EncodedAudioChunk: (<any> globalThis).EncodedAudioChunk,
+                AudioData: (<any> globalThis).AudioData
             };
         }
     } catch (ex) {}
@@ -171,12 +171,12 @@ export async function getVideoEncoder(
     config: venc.VideoEncoderConfig
 ): Promise<VideoEncoderEnvironment> {
     try {
-        if (typeof (<any> window).VideoEncoder !== "undefined" &&
-            (await (<any> window).VideoEncoder.isConfigSupported(config)).supported) {
+        if (typeof (<any> globalThis).VideoEncoder !== "undefined" &&
+            (await (<any> globalThis).VideoEncoder.isConfigSupported(config)).supported) {
             return {
-                VideoEncoder: (<any> window).VideoEncoder,
-                EncodedVideoChunk: (<any> window).EncodedVideoChunk,
-                VideoFrame: (<any> window).VideoFrame
+                VideoEncoder: (<any> globalThis).VideoEncoder,
+                EncodedVideoChunk: (<any> globalThis).EncodedVideoChunk,
+                VideoFrame: (<any> globalThis).VideoFrame
             };
         }
     } catch (ex) {}
