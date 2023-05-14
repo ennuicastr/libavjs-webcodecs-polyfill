@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/ennuicastr/libavjs-webcodecs-polyfill#readme",
   "dependencies": {
-    "globalthis": "^1.0.3",
+    "@ungap/global-this": "^0.4.4",
     "libav.js": "^3.10.5"
   },
   "devDependencies": {

@@ -18,12 +18,10 @@
  */
 
 import * as vf from "./video-frame";
-import { getPolyfill as getGlobal } from "globalthis";
+import '@ungap/global-this';
 
 import type * as LibAVJS from "libav.js";
 declare let LibAV: LibAVJS.LibAVWrapper;
-
-const globalThis = getGlobal();
 
 /* A non-threaded libav.js instance for scaling. This is an any because the
  * type definitions only expose the async versions, but this API requires the
