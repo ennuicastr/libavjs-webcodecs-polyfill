@@ -34,6 +34,7 @@ import * as libav from "./libav";
 import * as misc from "./misc";
 
 import type * as LibAVJS from "libav.js";
+import '@ungap/global-this';
 declare let LibAV: LibAVJS.LibAVWrapper;
 
 /**
@@ -73,8 +74,8 @@ export async function load(options: {
             "EncodedAudioChunk", "AudioData", "AudioDecoder", "AudioEncoder",
             "EncodedVideoChunk", "VideoFrame", "VideoDecoder", "VideoEncoder"
         ]) {
-            if (!(<any> window)[exp])
-                (<any> window)[exp] = (<any> this)[exp];
+            if (!(<any> globalThis)[exp])
+                (<any> globalThis)[exp] = (<any> this)[exp];
         }
     }
 
