@@ -26,8 +26,7 @@ import * as evc from "./encoded-video-chunk";
 import * as vf from "./video-frame";
 import * as vdec from "./video-decoder";
 import * as venc from "./video-encoder";
-import getGlobal from "globalthis";
-
+import { getPolyfill as getGlobal } from "globalthis";
 
 const globalThis = getGlobal();
 

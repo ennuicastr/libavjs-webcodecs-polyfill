@@ -18,11 +18,10 @@
  */
 
 import * as vf from "./video-frame";
-import getGlobal from "globalthis";
+import { getPolyfill as getGlobal } from "globalthis";
 
 import type * as LibAVJS from "libav.js";
 declare let LibAV: LibAVJS.LibAVWrapper;
-
 
 const globalThis = getGlobal();
 

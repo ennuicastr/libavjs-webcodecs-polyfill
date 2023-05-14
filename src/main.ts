@@ -34,9 +34,8 @@ import * as libav from "./libav";
 import * as misc from "./misc";
 
 import type * as LibAVJS from "libav.js";
-import getGlobal from "globalthis";
+import { getPolyfill as getGlobal } from "globalthis";
 declare let LibAV: LibAVJS.LibAVWrapper;
-
 
 const globalThis = getGlobal();
 
