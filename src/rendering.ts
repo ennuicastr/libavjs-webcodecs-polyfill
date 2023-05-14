@@ -55,7 +55,7 @@ export async function load(libavOptions: any, polyfill: boolean) {
         origDrawImage = CanvasRenderingContext2D.prototype.drawImage;
         if (polyfill)
             (<any> CanvasRenderingContext2D.prototype).drawImage = drawImagePolyfill;
-    } 
+    }
     if ('OffscreenCanvasRenderingContext2D' in globalThis) {
         origDrawImageOffscreen = OffscreenCanvasRenderingContext2D.prototype.drawImage;
         if (polyfill)
