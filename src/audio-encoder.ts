@@ -301,7 +301,7 @@ export class AudioEncoder {
                         channel_layout: frame.channel_layout
                     };
                     [self._filter_graph, self._buffersrc_ctx, self._buffersink_ctx] =
-                        await libav.ff_init_filter_graph("anull", filter_ctx,
+                        await libav.ff_init_filter_graph("aresample", filter_ctx,
                             self._filter_out_ctx);
                 }
 
