@@ -79,17 +79,44 @@ export class AudioDecoder {
         this._p = this._p.then(async function() {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
-            const supported = libavs.decoder(config.codec);
-
+            let udesc: Uint8Array;
+            if (config.description) { 
+                if (ArrayBuffer.isView(config.description)) {
+                    const descView = config.description as ArrayBufferView;
+                    udesc = new Uint8Array(descView.buffer, descView.byteOffset, descView.byteLength);
+                } else {
+                    const descBuf = config.description as ArrayBuffer;
+                    udesc = new Uint8Array(descBuf);
+                }
+            }
+            const  supported = libavs.decoder(config.codec);
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
             if (supported) {
                 const libav = self._libav = await libavs.get();
-
+                const codecpara = await libav.ff_calloc_AVCodecParameters();
+                const ps = [
+                   libav.AVCodecParameters_channels_s(codecpara, config.numberOfChannels),
+                   libav.AVCodecParameters_sample_rate_s(codecpara, config.sampleRate),
+                   libav.AVCodecParameters_codec_type_s(codecpara, 1 /*  AVMEDIA_TYPE_AUDIO */)
+                ]
+                if (!udesc) {
+                    ps.push(libav.AVCodecParameters_extradata_s(codecpara, 0));
+                    ps.push(libav.AVCodecParameters_extradata_size_s(codecpara, 0));
+                } else {                     
+                    ps.push(libav.AVCodecParameters_extradata_size_s(codecpara, udesc.byteLength));
+                    const extraDataPtr = await libav.calloc(udesc.byteLength + 64 /* AV_INPUT_BUFFER_PADDING_SIZE */, 1);
+                    ps.push(libav.copyin_u8(extraDataPtr, udesc));
+                }
+                // may be a bit faster, to wait for them all together
+                await Promise.all(ps);
+                
                 // Initialize
                 [self._codec, self._c, self._pkt, self._frame] =
-                    await libav.ff_init_decoder(supported.codec);
-                await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
+                    await libav.ff_init_decoder(supported.codec, codecpara);
+                await Promise.all([ libav.AVCodecContext_time_base_s(self._c, 1, 1000),
+                    libav.free(codecpara)
+                ]);
             }
 
             /* 3. Otherwise, run the Close AudioDecoder algorithm with
