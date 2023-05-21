@@ -112,7 +112,7 @@ export async function load() {
  * to libav.js. Returns null if unsupported.
  */
 export function decoder(
-    codec: string | {libavjs: LibAVJSCodec}
+    codec: string | {libavjs: LibAVJSCodec}, config: any
 ): LibAVJSCodec {
     if (typeof codec === "string") {
         codec = codec.replace(/\..*/, "");
@@ -121,13 +121,25 @@ export function decoder(
         switch (codec) {
             // Audio
             case "flac":
+                if (typeof config.description === "undefined") {
+                    // description is required per spec, but one can argue, if this limitation makes sense
+                    return null;
+                }
                 break;
 
             case "opus":
+                if (typeof config.description !== "undefined") {
+                    // ogg bitstream is not supported by the current implementation
+                    return null;
+                }
                 outCodec = "libopus";
                 break;
 
             case "vorbis":
+                if (typeof config.description === "undefined") {
+                    // description is required per spec, but one can argue, if this limitation makes sense
+                    return null;
+                }
                 outCodec = "libvorbis";
                 break;
 
@@ -231,6 +243,10 @@ export function encoder(
                     if (typeof opus.usedtx === "boolean") {
                         // We don't support the usedtx option
                         return null;
+                    }
+                    if (typeof opus.format === "string") { 
+                        // ogg bitstream is not supported
+                        if (opus.format !== "opus") return null;
                     }
                 }
                 break;

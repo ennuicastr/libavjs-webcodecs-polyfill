@@ -89,7 +89,7 @@ export class AudioDecoder {
                     udesc = new Uint8Array(descBuf);
                 }
             }
-            const  supported = libavs.decoder(config.codec);
+            const  supported = libavs.decoder(config.codec, config);
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
             if (supported) {
@@ -367,7 +367,7 @@ export class AudioDecoder {
     static async isConfigSupported(
         config: AudioDecoderConfig
     ): Promise<AudioDecoderSupport> {
-        const dec = libavs.decoder(config.codec);
+        const dec = libavs.decoder(config.codec, config);
         let supported = false;
         if (dec) {
             const libav = await libavs.get();
