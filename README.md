@@ -67,8 +67,9 @@ LibAVJS-WebCodecs-Polyfill, then `drawImage` itself will also support
 
 ## Compatibility
 
-LibAVJS-WebCodecs-Polyfill should be up to date with revision `8b6a91ebd`
-(2021-11-16) of the WebCodecs specification.
+LibAVJS-WebCodecs-Polyfill should be up to date with the 2023-02-09 working
+draft of the WebCodecs specification:
+https://www.w3.org/TR/2023/WD-webcodecs-20230209/
 
 Depending on the libav.js version used, LibAVJS-WebCodecs-Polyfill supports the
 audio codecs FLAC (`"flac"`), Opus (`"opus"`), and Vorbis (`"vorbis"`), and the
@@ -139,3 +140,6 @@ LibAVJS-WebCodecs-Polyfill always lets the event queue finish.
 The framerate reported to video codecs is the nearest whole number to the input
 framerate. This should usually only affect bitrate and latency calculations, as
 each frame is individually timestamped.
+
+All queues are shared per each encoder/decoder, and the `ondequeue` event is not
+supported.
