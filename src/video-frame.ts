@@ -48,7 +48,7 @@ export class VideoFrame {
             throw new DOMException("Could not determine dimensions", "InvalidStateError");
 
         if (offscreenCanvas === null) {
-            if (OffscreenCanvas != null) {
+            if (typeof OffscreenCanvas !== "undefined") {
                 offscreenCanvas = new OffscreenCanvas(width, height)
             } else {
                 offscreenCanvas = document.createElement("canvas");
