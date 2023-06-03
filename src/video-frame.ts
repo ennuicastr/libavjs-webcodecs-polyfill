@@ -18,7 +18,7 @@
  */
 
 // A canvas element used to convert CanvasImageSources to buffers
-let offscreenCanvas: HTMLCanvasElement = null;
+let offscreenCanvas: HTMLCanvasElement | OffscreenCanvas | null = null;
 
 export class VideoFrame {
     constructor(data: CanvasImageSource | BufferSource,
@@ -32,14 +32,6 @@ export class VideoFrame {
     }
 
     private _constructCanvas(image: any, init: VideoFrameInit) {
-        if (offscreenCanvas === null) {
-            offscreenCanvas = document.createElement("canvas");
-            offscreenCanvas.style.display = "none";
-            document.body.appendChild(offscreenCanvas);
-        }
-
-        // Convert it to a buffer
-
         // Get the width and height
         let width = 0, height = 0;
         if (image.naturalWidth) {
@@ -55,10 +47,19 @@ export class VideoFrame {
         if (!width || !height)
             throw new DOMException("Could not determine dimensions", "InvalidStateError");
 
-        // Draw it
+        if (offscreenCanvas === null) {
+            if (typeof OffscreenCanvas !== "undefined") {
+                offscreenCanvas = new OffscreenCanvas(width, height)
+            } else {
+                offscreenCanvas = document.createElement("canvas");
+                offscreenCanvas.style.display = "none";
+                document.body.appendChild(offscreenCanvas);
+            }
+        }
+
         offscreenCanvas.width = width;
         offscreenCanvas.height = height;
-        const ctx = offscreenCanvas.getContext("2d");
+        const ctx = offscreenCanvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
         ctx.clearRect(0, 0, width, height);
         ctx.drawImage(image, 0, 0);
         this._constructBuffer(ctx.getImageData(0, 0, width, height).data, {
