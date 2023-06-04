@@ -126,7 +126,7 @@ export class AudioEncoder {
             else {
                 self._closeAudioEncoder(new DOMException("Unsupported codec", "NotSupportedError"));
             }
-            
+
         }).catch(this._error);
     }
 

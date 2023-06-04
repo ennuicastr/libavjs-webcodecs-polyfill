@@ -79,7 +79,7 @@ export class VideoDecoder {
         this._p = this._p.then(async function() {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
-            const supported = libavs.decoder(config.codec);
+            const supported = libavs.decoder(config.codec, config);
 
             /* 2. If supported is true, assign [[codec implementation]] with an
              * implementation supporting config. */
@@ -97,7 +97,7 @@ export class VideoDecoder {
             else {
                 self._closeVideoDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
             }
-            
+
         }).catch(this._error);
     }
 
@@ -350,7 +350,7 @@ export class VideoDecoder {
     static async isConfigSupported(
         config: VideoDecoderConfig
     ): Promise<VideoDecoderSupport> {
-        const dec = libavs.decoder(config.codec);
+        const dec = libavs.decoder(config.codec, config);
         let supported = false;
         if (dec) {
             const libav = await libavs.get();
