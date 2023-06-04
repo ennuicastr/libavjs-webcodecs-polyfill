@@ -137,7 +137,7 @@ export class VideoEncoder {
             else {
                 self._closeVideoEncoder(new DOMException("Unsupported codec", "NotSupportedError"));
             }
-            
+
         }).catch(this._error);
     }
 

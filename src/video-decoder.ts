@@ -97,7 +97,7 @@ export class VideoDecoder {
             else {
                 self._closeVideoDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
             }
-            
+
         }).catch(this._error);
     }
 

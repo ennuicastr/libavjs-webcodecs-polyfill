@@ -244,7 +244,7 @@ export function encoder(
                         // We don't support the usedtx option
                         return null;
                     }
-                    if (typeof opus.format === "string") { 
+                    if (typeof opus.format === "string") {
                         // ogg bitstream is not supported
                         if (opus.format !== "opus") return null;
                     }

@@ -80,7 +80,7 @@ export class AudioDecoder {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
             let udesc: Uint8Array;
-            if (config.description) { 
+            if (config.description) {
                 if (ArrayBuffer.isView(config.description)) {
                     const descView = config.description as ArrayBufferView;
                     udesc = new Uint8Array(descView.buffer, descView.byteOffset, descView.byteLength);
@@ -99,27 +99,27 @@ export class AudioDecoder {
                    libav.AVCodecParameters_channels_s(codecpara, config.numberOfChannels),
                    libav.AVCodecParameters_sample_rate_s(codecpara, config.sampleRate),
                    libav.AVCodecParameters_codec_type_s(codecpara, 1 /*  AVMEDIA_TYPE_AUDIO */)
-                ]
-                let extraDataPtr 
+                ];
+                let extraDataPtr = 0;
                 if (!udesc) {
                     ps.push(libav.AVCodecParameters_extradata_s(codecpara, 0));
                     ps.push(libav.AVCodecParameters_extradata_size_s(codecpara, 0));
-                } else {                     
+                } else {
                     ps.push(libav.AVCodecParameters_extradata_size_s(codecpara, udesc.byteLength));
                     extraDataPtr = await libav.calloc(udesc.byteLength + 64 /* AV_INPUT_BUFFER_PADDING_SIZE */, 1);
                     ps.push(libav.copyin_u8(extraDataPtr, udesc));
                     ps.push(libav.AVCodecParameters_extradata_s(codecpara, extraDataPtr))
                 }
-                // may be a bit faster, to wait for them all together
                 await Promise.all(ps);
-                
+
                 // Initialize
                 [self._codec, self._c, self._pkt, self._frame] =
                     await libav.ff_init_decoder(supported.codec, codecpara);
-                const fps = [ libav.AVCodecContext_time_base_s(self._c, 1, 1000),
+                const fps = [
+                    libav.AVCodecContext_time_base_s(self._c, 1, 1000),
                     libav.free(codecpara)
-                ]
-                if (udesc) fps.push(libav.free(extraDataPtr))
+                ];
+                if (extraDataPtr) fps.push(libav.free(extraDataPtr));
                 await Promise.all(fps);
             }
 
@@ -128,7 +128,7 @@ export class AudioDecoder {
             else {
                 self._closeAudioDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
             }
-            
+
         }).catch(this._error);
     }
 
