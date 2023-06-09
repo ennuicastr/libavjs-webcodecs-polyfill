@@ -20,6 +20,9 @@
 import type * as LibAVJS from "libav.js";
 declare let LibAV: LibAVJS.LibAVWrapper;
 
+// Wrapper function to use
+export let LibAVWrapper: LibAVJS.LibAVWrapper = null;
+
 // Currently available libav instances
 const libavs: LibAVJS.LibAV[] = [];
 
@@ -47,6 +50,13 @@ export interface LibAVJSCodec {
 }
 
 /**
+ * Set the libav wrapper to use.
+ */
+export function setLibAV(to: LibAVJS.LibAVWrapper) {
+    LibAVWrapper = to;
+}
+
+/**
  * Set the libav loading options.
  */
 export function setLibAVOptions(to: any) {
@@ -59,7 +69,7 @@ export function setLibAVOptions(to: any) {
 export async function get(): Promise<LibAVJS.LibAV> {
     if (libavs.length)
         return libavs.shift();
-    return await LibAV.LibAV(libavOptions);
+    return await LibAVWrapper.LibAV(libavOptions);
 }
 
 /**
@@ -103,6 +113,7 @@ async function codecs(encoders: boolean): Promise<string[]> {
  * Load the lists of supported decoders and encoders.
  */
 export async function load() {
+    LibAVWrapper = LibAVWrapper || LibAV;
     decoders = await codecs(false);
     encoders = await codecs(true);
 }

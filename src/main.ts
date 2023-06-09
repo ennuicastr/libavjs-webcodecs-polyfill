@@ -42,6 +42,7 @@ declare let LibAV: LibAVJS.LibAVWrapper;
  */
 export async function load(options: {
     polyfill?: boolean,
+    LibAV?: LibAVJS.LibAVWrapper,
     libavOptions?: any
 } = {}) {
     // Set up libavOptions
@@ -50,7 +51,7 @@ export async function load(options: {
         Object.assign(libavOptions, options.libavOptions);
 
     // Maybe load libav
-    if (typeof LibAV === "undefined") {
+    if (!options.LibAV && typeof LibAV === "undefined") {
         await new Promise((res, rej) => {
             // Can't load workers from another origin
             libavOptions.noworker = true;
@@ -66,6 +67,8 @@ export async function load(options: {
     }
 
     // And load the libav handler
+    if (options.LibAV)
+        libav.setLibAV(options.LibAV);
     libav.setLibAVOptions(libavOptions);
     await libav.load();
 

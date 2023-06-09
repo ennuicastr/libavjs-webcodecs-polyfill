@@ -17,11 +17,11 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+import * as libav from "./libav";
 import * as vf from "./video-frame";
 import '@ungap/global-this';
 
 import type * as LibAVJS from "libav.js";
-declare let LibAV: LibAVJS.LibAVWrapper;
 
 /* A non-threaded libav.js instance for scaling. This is an any because the
  * type definitions only expose the async versions, but this API requires the
@@ -47,8 +47,12 @@ let origCreateImageBitmap: any = null;
  */
 export async function load(libavOptions: any, polyfill: boolean) {
     // Get our scalers
-    scalerSync = await LibAV.LibAV({noworker: true});
-    scalerAsync = await LibAV.LibAV(libavOptions);
+    if ("importScripts" in globalThis) {
+        // Make sure the worker code doesn't run
+        (<any> libav.LibAVWrapper).nolibavworker = true;
+    }
+    scalerSync = await libav.LibAVWrapper.LibAV({noworker: true});
+    scalerAsync = await libav.LibAVWrapper.LibAV(libavOptions);
 
     // Polyfill drawImage
     if ('CanvasRenderingContext2D' in globalThis) {
