@@ -1,3 +1,5 @@
+importScripts("../worker-util.js");
+
 (async function() {
     await LibAVWebCodecs.load();
 
@@ -49,21 +51,25 @@
         audioInit, audioPackets, audioStream, LibAVWebCodecs.AudioDecoder,
         LibAVWebCodecs.EncodedAudioChunk);
     let b = null;
-    if (typeof AudioDecoder !== "undefined")
-        b = await decodeAudio(
-            audioInit, audioPackets, audioStream, AudioDecoder,
-            EncodedAudioChunk);
-    const c = await decodeVideo(
+    if (typeof AudioDecoder !== "undefined") {
+        try {
+            b = await decodeAudio(
+                audioInit, audioPackets, audioStream, AudioDecoder,
+                EncodedAudioChunk);
+        } catch (ex) {
+            console.error(ex);
+        }
+    }
+    const va = await decodeVideo(
         LibAVWebCodecs.VideoDecoder, LibAVWebCodecs.EncodedVideoChunk);
-    let d = null;
-    if (typeof VideoDecoder !== "undefined")
-        d = await decodeVideo(VideoDecoder, EncodedVideoChunk);
+    let vb = null;
+    if (typeof VideoDecoder !== "undefined") {
+        try {
+            vb = await decodeVideo(VideoDecoder, EncodedVideoChunk);
+        } catch (ex) {
+            console.error(ex);
+        }
+    }
 
-    await sampleOutputAudio(a);
-    if (b)
-        await sampleCompareAudio(a, b);
-
-    sampleOutputVideo(c, 25);
-    if (d)
-        sampleOutputVideo(d, 25);
+    postMessage({a, b, va, vb});
 })();

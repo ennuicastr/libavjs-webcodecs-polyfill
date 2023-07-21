@@ -1,3 +1,5 @@
+importScripts("../worker-util.js");
+
 (async function() {
     await LibAVWebCodecs.load();
 
@@ -8,18 +10,22 @@
     const init = {
         codec: "flac",
         sampleRate: 48000,
-        numberOfChannels: 2
+        numberOfChannels: 2,
+        description: stream.extradata
     };
 
     const a = await decodeAudio(
         init, packets, stream, LibAVWebCodecs.AudioDecoder,
         LibAVWebCodecs.EncodedAudioChunk);
     let b = null;
-    if (typeof AudioDecoder !== "undefined")
-        b = await decodeAudio(
-            init, packets, stream, AudioDecoder, EncodedAudioChunk);
+    if (typeof AudioDecoder !== "undefined") {
+        try {
+            b = await decodeAudio(
+                init, packets, stream, AudioDecoder, EncodedAudioChunk);
+        } catch (ex) {
+            console.error(ex);
+        }
+    }
 
-    await sampleOutputAudio(a);
-    if (a && b)
-        await sampleCompareAudio(a, b);
+    postMessage({a, b});
 })();

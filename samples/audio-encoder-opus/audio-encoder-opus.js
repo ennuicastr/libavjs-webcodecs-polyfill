@@ -1,3 +1,5 @@
+importScripts("../worker-util.js");
+
 (async function() {
     await LibAVWebCodecs.load();
 
@@ -8,7 +10,8 @@
     const init = {
         codec: "flac",
         sampleRate: 48000,
-        numberOfChannels: 2
+        numberOfChannels: 2,
+        description: stream.extradata
     };
 
     // First decode it
@@ -54,13 +57,15 @@
         encoder.close();
 
         const opus = await sampleMux("tmp.webm", "libopus", packets, extradata);
-        const audio = document.createElement("audio");
-        audio.src = URL.createObjectURL(new Blob([opus]));
-        audio.controls = true;
-        document.body.appendChild(audio);
+        return opus;
     }
 
-    await encode(LibAVWebCodecs.AudioEncoder, LibAVWebCodecs.AudioData);
-    if (typeof AudioEncoder !== "undefined")
-        await encode(AudioEncoder, AudioData);
+    const a = await encode(LibAVWebCodecs.AudioEncoder, LibAVWebCodecs.AudioData);
+    let b = null;
+    if (typeof AudioEncoder !== "undefined") {
+        try {
+            b = await encode(AudioEncoder, AudioData);
+        } catch (ex) { console.error(ex); }
+    }
+    postMessage({a, b});
 })();

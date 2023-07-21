@@ -5,9 +5,21 @@
         <title>LibAVJS WebCodecs Polyfill Example: Video decoder (VP8)</title>
     </head>
     <body>
-        <!-- LOAD LIBAV.JS HERE -->
-        <script type="text/javascript" src="../../libavjs-webcodecs-polyfill.min.js"></script>
         <script type="text/javascript" src="../util.js"></script>
-        <script type="text/javascript" src="video-decoder-vp8-opus.js"></script>
+        <script type="text/javascript" src="../../libavjs-webcodecs-polyfill.min.js"></script>
+        <script type="text/javascript">(async function() {
+            await LibAVWebCodecs.load();
+            const worker = new Worker("video-decoder-vp8-opus.js");
+            worker.onmessage = async ev => {
+                const {a, b, va, vb} = ev.data;
+                await sampleOutputAudio(a);
+                if (b)
+                    await sampleCompareAudio(a, b);
+
+                sampleOutputVideo(va, 25);
+                if (vb)
+                    sampleOutputVideo(vb, 25);
+            };
+        })();</script>
     </body>
 </html>

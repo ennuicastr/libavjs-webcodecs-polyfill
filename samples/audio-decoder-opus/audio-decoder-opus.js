@@ -17,9 +17,14 @@ importScripts("../worker-util.js");
         init, packets, stream, LibAVWebCodecs.AudioDecoder,
         LibAVWebCodecs.EncodedAudioChunk);
     let b = null;
-    if (typeof AudioDecoder !== "undefined")
-        b = await decodeAudio(
-            init, packets, stream, AudioDecoder, EncodedAudioChunk);
+    if (typeof AudioDecoder !== "undefined") {
+        try {
+            b = await decodeAudio(
+                init, packets, stream, AudioDecoder, EncodedAudioChunk);
+        } catch (ex) {
+            console.error(ex);
+        }
+    }
 
     postMessage({a, b});
 })();

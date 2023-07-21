@@ -1,3 +1,5 @@
+importScripts("../worker-util.js");
+
 (async function() {
     await LibAVWebCodecs.load();
 
@@ -8,7 +10,8 @@
     const init = {
         codec: "flac",
         sampleRate: 48000,
-        numberOfChannels: 2
+        numberOfChannels: 2,
+        description: stream.extradata
     };
 
     // First decode it
@@ -16,7 +19,7 @@
         init, packets, stream, LibAVWebCodecs.AudioDecoder,
         LibAVWebCodecs.EncodedAudioChunk, {noextract: true});
 
-    // Then encode it as Opus
+    // Then encode it as FLAC
     async function encode(AudioEncoder, AudioData) {
         const packets = [];
         let extradata = null;
@@ -52,17 +55,16 @@
         await encoder.flush();
         encoder.close();
 
-        const opus = await sampleMux("tmp.flac", "flac", packets, extradata);
-        const audio = document.createElement("audio");
-        audio.src = URL.createObjectURL(new Blob([opus]));
-        audio.controls = true;
-        document.body.appendChild(audio);
+        const flac = await sampleMux("tmp.flac", "flac", packets, extradata);
+        return flac;
     }
 
-    await encode(LibAVWebCodecs.AudioEncoder, LibAVWebCodecs.AudioData);
+    const a = await encode(LibAVWebCodecs.AudioEncoder, LibAVWebCodecs.AudioData);
+    let b = null;
     if (typeof AudioEncoder !== "undefined") {
         try {
-            await encode(AudioEncoder, AudioData);
+            b = await encode(AudioEncoder, AudioData);
         } catch (ex) { console.error(ex); }
     }
+    postMessage({a, b});
 })();

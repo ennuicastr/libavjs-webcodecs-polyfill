@@ -5,9 +5,20 @@
         <title>LibAVJS WebCodecs Polyfill Example: Audio encoder (FLAC)</title>
     </head>
     <body>
-        <!-- LOAD LIBAV.JS HERE -->
-        <script type="text/javascript" src="../../libavjs-webcodecs-polyfill.min.js"></script>
         <script type="text/javascript" src="../util.js"></script>
-        <script type="text/javascript" src="audio-encoder-flac.js"></script>
+        <script type="text/javascript">(function() {
+            const worker = new Worker("audio-encoder-flac.js");
+            worker.onmessage = async ev => {
+                const {a, b} = ev.data;
+                for (const flac of [a, b]) {
+                    if (!flac)
+                        continue;
+                    const audio = document.createElement("audio");
+                    audio.src = URL.createObjectURL(new Blob([flac]));
+                    audio.controls = true;
+                    document.body.appendChild(audio);
+                }
+            };
+        })();</script>
     </body>
 </html>

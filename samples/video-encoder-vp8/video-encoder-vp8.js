@@ -1,3 +1,5 @@
+importScripts("../worker-util.js");
+
 (async function() {
     await LibAVWebCodecs.load();
 
@@ -10,7 +12,7 @@
         const frames = [];
         const decoder = new VideoDecoder({
             output: frame => frames.push(frame),
-            error: x => alert(x)
+            error: x => console.error
         });
         decoder.configure({
             codec: "vp8",
@@ -49,7 +51,7 @@
         const packets = [];
         const encoder = new VideoEncoder({
             output: packet => packets.push(packet),
-            error: x => alert(x)
+            error: x => { throw new Error(x); }
         });
         encoder.configure({
             codec: "vp8",
@@ -73,24 +75,25 @@
         await encoder.flush();
         encoder.close();
 
-        const opus = await sampleMux("tmp.webm", "libvpx", packets);
-        const video = document.createElement("video");
-        video.src = URL.createObjectURL(new Blob([opus]));
-        video.controls = true;
-        document.body.appendChild(video);
+        return await sampleMux("tmp.webm", "libvpx", packets);
     }
 
     let preEncode = performance.now();
-    await encode(LibAVWebCodecs.VideoEncoder, LibAVWebCodecs.VideoFrame);
+    const a = await encode(LibAVWebCodecs.VideoEncoder, LibAVWebCodecs.VideoFrame);
     let postEncode = performance.now();
-    if (typeof VideoEncoder !== "undefined")
-        await encode(VideoEncoder, VideoFrame);
+    let b = null;
+    if (typeof VideoEncoder !== "undefined") {
+        try {
+            b = await encode(VideoEncoder, VideoFrame);
+        } catch (ex) { console.error(ex); }
+    }
     let postEncode2 = performance.now();
 
-    const report = document.createElement("div");
-    report.innerText = "Decode time: " + ~~(postDecode - preDecode) +
+    postMessage({
+        a, b,
+        report: "Decode time: " + ~~(postDecode - preDecode) +
         "ms. Encode time: " + ~~(postEncode - preEncode) +
         "ms. Encode time (browser implementation): " +
-        ~~(postEncode2 - postEncode) + "ms.";
-    document.body.appendChild(report);
+        ~~(postEncode2 - postEncode) + "ms."
+    });
 })();

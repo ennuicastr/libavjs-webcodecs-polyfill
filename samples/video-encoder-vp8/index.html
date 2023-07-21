@@ -5,9 +5,24 @@
         <title>LibAVJS WebCodecs Polyfill Example: Video encoder (VP8)</title>
     </head>
     <body>
-        <!-- LOAD LIBAV.JS HERE -->
-        <script type="text/javascript" src="../../libavjs-webcodecs-polyfill.min.js"></script>
         <script type="text/javascript" src="../util.js"></script>
-        <script type="text/javascript" src="video-encoder-vp8.js"></script>
+        <script type="text/javascript">(function() {
+            const worker = new Worker("video-encoder-vp8.js");
+            worker.onmessage = async ev => {
+                const {a, b} = ev.data;
+                for (const webm of [a, b]) {
+                    if (!webm)
+                        continue;
+                    const video = document.createElement("video");
+                    video.src = URL.createObjectURL(new Blob([webm]));
+                    video.controls = true;
+                    document.body.appendChild(video);
+                }
+
+                const report = document.createElement("div");
+                report.innerText = ev.data.report;
+                document.body.appendChild(report);
+            };
+        })();</script>
     </body>
 </html>
