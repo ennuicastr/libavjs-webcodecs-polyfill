@@ -94,7 +94,7 @@ export class AudioDecoder {
              * implementation supporting config. */
             if (supported) {
                 const libav = self._libav = await libavs.get();
-                const codecpara = await libav.ff_calloc_AVCodecParameters();
+                const codecpara = await libav.avcodec_parameters_alloc();
                 const ps = [
                    libav.AVCodecParameters_channels_s(codecpara, config.numberOfChannels),
                    libav.AVCodecParameters_sample_rate_s(codecpara, config.sampleRate),
@@ -117,7 +117,7 @@ export class AudioDecoder {
                     await libav.ff_init_decoder(supported.codec, codecpara);
                 const fps = [
                     libav.AVCodecContext_time_base_s(self._c, 1, 1000),
-                    libav.free(codecpara)
+                    libav.avcodec_parameters_free_js(codecpara)
                 ];
                 if (extraDataPtr) fps.push(libav.free(extraDataPtr));
                 await Promise.all(fps);

@@ -1,3 +1,5 @@
+importScripts("../worker-util.js");
+
 (async function() {
     await LibAVWebCodecs.load();
 
@@ -19,7 +21,5 @@
         b = await decodeAudio(
             init, packets, stream, AudioDecoder, EncodedAudioChunk);
 
-    await sampleOutputAudio(a);
-    if (a && b)
-        await sampleCompareAudio(a, b);
+    postMessage({a, b});
 })();
