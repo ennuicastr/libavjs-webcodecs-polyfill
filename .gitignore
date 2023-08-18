@@ -1,5 +1,6 @@
 .*.swp
 libavjs-webcodecs-polyfill.js
 libavjs-webcodecs-polyfill.min.js
+types/
 node_modules/
 package-lock.json

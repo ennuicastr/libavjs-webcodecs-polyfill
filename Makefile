@@ -1,10 +1,16 @@
-all: libavjs-webcodecs-polyfill.min.js
+all: libavjs-webcodecs-polyfill.min.js types/main.d.ts
 
 libavjs-webcodecs-polyfill.js: src/*.ts node_modules/.bin/browserify
 	./src/build.js > $@
 
 libavjs-webcodecs-polyfill.min.js: libavjs-webcodecs-polyfill.js node_modules/.bin/browserify
 	./node_modules/.bin/minify --js < $< > $@
+
+types/main.d.ts: src/*.ts node_modules/.bin/browserify
+	mkdir -p types
+	./node_modules/.bin/tsc \
+		--declaration --emitDeclarationOnly \
+		--outDir types
 
 better-samples:
 	for i in samples/*/; do \
@@ -19,3 +25,4 @@ node_modules/.bin/browserify:
 
 clean:
 	rm -f libavjs-webcodecs-polyfill.js libavjs-webcodecs-polyfill.min.js
+	rm -rf types

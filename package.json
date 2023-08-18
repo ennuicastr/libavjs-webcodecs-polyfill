@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
   "main": "libavjs-webcodecs-polyfill.min.js",
-  "types": "src/main.ts",
+  "types": "types/main.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
