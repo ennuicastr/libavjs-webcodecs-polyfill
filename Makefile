@@ -7,6 +7,7 @@ libavjs-webcodecs-polyfill.min.js: libavjs-webcodecs-polyfill.js node_modules/.b
 	./node_modules/.bin/minify --js < $< > $@
 
 types/main.d.ts: src/*.ts node_modules/.bin/browserify
+	rm -rf types
 	mkdir -p types
 	./node_modules/.bin/tsc \
 		--declaration --emitDeclarationOnly \
