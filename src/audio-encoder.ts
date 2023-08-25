@@ -282,9 +282,24 @@ export class AudioEncoder {
                         filter_ctx.channel_layout !== frame.channel_layout ||
                         filter_ctx.sample_rate !== frame.sample_rate) {
                         // Need a new filter! First, get anything left in the filter
-                        const fframes = await self._filter([], true);
-                        preOutputs =
-                            await libav.ff_encode_multi(c, framePtr, pkt, fframes);
+                        let fframes = await self._filter([], true);
+
+                        // Can't send partial frames through the encoder
+                        fframes = fframes.filter(x => {
+                            let frame_size: number;
+                            if (x.data[0].length) {
+                                // Planar
+                                frame_size = x.data[0].length;
+                            } else {
+                                frame_size = x.data.length / x.channels;
+                            }
+                            return frame_size === self._filter_out_ctx.frame_size;
+                        });
+
+                        if (fframes.length) {
+                            preOutputs =
+                                await libav.ff_encode_multi(c, framePtr, pkt, fframes);
+                        }
 
                         await libav.avfilter_graph_free_js(self._filter_graph);
                         self._filter_in_ctx = null;
