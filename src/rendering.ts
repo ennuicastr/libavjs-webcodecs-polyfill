@@ -156,8 +156,6 @@ export function canvasDrawImage(
     }
 
     // Convert the frame synchronously
-    let frameData = new ImageData(dWidth, dHeight);
-
     const sctx = scalerSync.sws_getContext_sync(
         image.codedWidth, image.codedHeight, format,
         dWidth, dHeight, scalerSync.AV_PIX_FMT_RGBA,
@@ -199,18 +197,7 @@ export function canvasDrawImage(
     scalerSync.sws_scale_frame_sync(sctx, outFrame, inFrame);
 
     // Get the data back out again
-    const frame = scalerSync.ff_copyout_frame_sync(outFrame);
-
-    // Transfer all the data
-    let idx = 0;
-    for (let i = 0; i < frame.data.length; i++) {
-        const plane = frame.data[i];
-        for (let y = 0; y < plane.length; y++) {
-            const row = plane[y].subarray(0, image.codedWidth * 4);
-            frameData.data.set(row, idx);
-            idx += row.length;
-        }
-    }
+    const frameData = scalerSync.ff_copyout_frame_video_imagedata_sync(outFrame);
 
     // Finally, draw it
     ctx.putImageData(frameData, dx, dy);
@@ -312,8 +299,6 @@ export function createImageBitmap(
         ? opts.resizeHeight : image.displayHeight;
 
     // Convert the frame
-    let frameData = new ImageData(dWidth, dHeight);
-
     return (async () => {
        const [sctx, inFrame, outFrame] = await Promise.all([
            scalerAsync.sws_getContext(
@@ -345,39 +330,29 @@ export function createImageBitmap(
            }
        }
 
-       const [, , frame] = await Promise.all([
-           // Copy it in
-           scalerAsync.ff_copyin_frame(inFrame, {
-               data: raw,
-               format,
-               width: image.codedWidth,
-               height: image.codedHeight
-           }),
+       // Copy it in
+       await scalerAsync.ff_copyin_frame(inFrame, {
+           data: raw,
+           format,
+           width: image.codedWidth,
+           height: image.codedHeight
+       }),
 
-           // Rescale
-           scalerAsync.sws_scale_frame(sctx, outFrame, inFrame),
+       // Rescale
+       await scalerAsync.sws_scale_frame(sctx, outFrame, inFrame);
 
-           // Get the data back out again
-           scalerAsync.ff_copyout_frame(outFrame),
+       // Get the data back out again
+       const frameData =
+           await scalerAsync.ff_copyout_frame_video_imagedata(outFrame);
 
-           // And clean up
+       // And clean up
+       await Promise.all([
            scalerAsync.av_frame_free_js(outFrame),
            scalerAsync.av_frame_free_js(inFrame),
            scalerAsync.sws_freeContext(sctx)
        ]);
 
-       // Transfer all the data
-       let idx = 0;
-       for (let i = 0; i < frame.data.length; i++) {
-           const plane = frame.data[i];
-           for (let y = 0; y < plane.length; y++) {
-               const row = plane[y].subarray(0, image.codedWidth * 4);
-               frameData.data.set(row, idx);
-               idx += row.length;
-           }
-       }
-
-       // And make the ImageBitmap
+       // Make the ImageBitmap
        return await origCreateImageBitmap(frameData);
     })();
 }

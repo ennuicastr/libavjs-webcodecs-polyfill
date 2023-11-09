@@ -27,13 +27,13 @@
   "homepage": "https://github.com/ennuicastr/libavjs-webcodecs-polyfill#readme",
   "dependencies": {
     "@ungap/global-this": "^0.4.4",
-    "libav.js": "=4.3.6"
+    "libav.js": "=4.5.6"
   },
   "devDependencies": {
     "browser-pack-flat": "^3.5.0",
     "browserify": "^17.0.0",
     "minify": "^9.2.0",
     "tsify": "^5.0.4",
-    "typescript": "^4.4.4"
+    "typescript": "^5.2.2"
   }
 }
