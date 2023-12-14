@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -204,8 +204,13 @@ export class AudioDecoder {
             try {
                 // Convert to a libav packet
                 const ptsFull = Math.floor(chunk.timestamp / 1000);
-                const pts = ptsFull % 0x100000000;
-                const ptshi = ~~(ptsFull / 0x100000000);
+                let pts: number, ptshi: number;
+                if (libav.f64toi64) {
+                    [pts, ptshi] = libav.f64toi64(ptsFull);
+                } else {
+                    pts = ~~ptsFull;
+                    ptshi = Math.floor(ptsFull / 0x100000000);
+                }
                 const packet: LibAVJS.Packet = {
                     data: chunk._libavGetData(),
                     pts,
@@ -302,7 +307,12 @@ export class AudioDecoder {
             const numberOfChannels = frame.channels;
 
             // 5. timestamp
-            const timestamp = (frame.ptshi * 0x100000000 + frame.pts) * 1000;
+            let timestamp: number;
+            if (libav.i64tof64)
+                timestamp = libav.i64tof64(frame.pts, frame.ptshi);
+            else
+                timestamp = frame.ptshi * 0x100000000 + frame.pts;
+            timestamp *= 1000;
 
             // 6. data
             let raw: any;

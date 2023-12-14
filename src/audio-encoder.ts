@@ -260,8 +260,13 @@ export class AudioEncoder {
 
                 // Convert the timestamp
                 const ptsFull = Math.floor(dataClone.timestamp / 1000);
-                const pts = ptsFull % 0x100000000;
-                const ptshi = ~~(ptsFull / 0x100000000);
+                let pts: number, ptshi: number;
+                if (libav.f64toi64) {
+                    [pts, ptshi] = libav.f64toi64(ptsFull);
+                } else {
+                    pts = ~~ptsFull;
+                    ptshi = Math.floor(ptsFull / 0x100000000);
+                }
 
                 // Convert the channel layout
                 const cc = dataClone.numberOfChannels;
@@ -397,8 +402,12 @@ export class AudioEncoder {
                 (packet.flags & 1) ? "key" : "delta";
 
             // 2. timestamp
-            let timestamp = Math.floor((packet.ptshi * 0x100000000 + packet.pts) / sampleRate * 1000000);
-            if (timestamp < 0) timestamp = 0;
+            let timestamp: number;
+            if (libav.i64tof64)
+                timestamp = libav.i64tof64(packet.pts, packet.ptshi);
+            else
+                timestamp = packet.ptshi * 0x100000000 + packet.pts;
+            timestamp = Math.floor(timestamp / sampleRate * 1000000);
 
             const chunk = new eac.EncodedAudioChunk({
                 type, timestamp,

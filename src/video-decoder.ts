@@ -173,8 +173,13 @@ export class VideoDecoder {
             try {
                 // Convert to a libav packet
                 const ptsFull = Math.floor(chunk.timestamp / 1000);
-                const pts = ptsFull % 0x100000000;
-                const ptshi = ~~(ptsFull / 0x100000000);
+                let pts: number, ptshi: number;
+                if (libav.f64toi64) {
+                    [pts, ptshi] = libav.f64toi64(ptsFull);
+                } else {
+                    pts = ~~ptsFull;
+                    ptshi = Math.floor(ptsFull / 0x100000000);
+                }
                 const packet: LibAVJS.Packet = {
                     data: chunk._libavGetData(),
                     pts,
@@ -268,7 +273,12 @@ export class VideoDecoder {
             }
 
             // 3. timestamp
-            const timestamp = (frame.ptshi * 0x100000000 + frame.pts) * 1000;
+            let timestamp: number;
+            if (libav.i64tof64)
+                timestamp = libav.i64tof64(frame.pts, frame.ptshi);
+            else
+                timestamp = frame.ptshi * 0x100000000 + frame.pts;
+            timestamp *= 1000;
 
             // 4. data
             let raw: Uint8Array;

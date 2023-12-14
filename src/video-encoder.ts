@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2023 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -282,8 +282,13 @@ export class VideoEncoder {
 
                 // Convert the timestamp
                 const ptsFull = Math.floor(frameClone.timestamp / 1000);
-                const pts = ptsFull % 0x100000000;
-                const ptshi = ~~(ptsFull / 0x100000000);
+                let pts: number, ptshi: number;
+                if (libav.f64toi64) {
+                    [pts, ptshi] = libav.f64toi64(ptsFull);
+                } else {
+                    pts = ~~ptsFull;
+                    ptshi = Math.floor(ptsFull / 0x100000000);
+                }
 
                 // Make the frame
                 const frame: LibAVJS.Frame = {
@@ -425,8 +430,12 @@ export class VideoEncoder {
                 (packet.flags & 1) ? "key" : "delta";
 
             // 2. timestamp
-            let timestamp = Math.floor((packet.ptshi * 0x100000000 + packet.pts) * 1000);
-            if (timestamp < 0) timestamp = 0;
+            let timestamp: number;
+            if (libav.i64tof64)
+                timestamp = libav.i64tof64(packet.pts, packet.ptshi);
+            else
+                timestamp = packet.ptshi * 0x100000000 + packet.pts;
+            timstamp *= 1000;
 
             const chunk = new evc.EncodedVideoChunk({
                 type: <any> type, timestamp,
