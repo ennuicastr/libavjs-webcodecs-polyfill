@@ -19,13 +19,15 @@
 
 import * as ad from "./audio-data";
 import * as eac from "./encoded-audio-chunk";
+import * as et from "./event-target";
 import * as libavs from "./libav";
 import * as misc from "./misc";
 
 import type * as LibAVJS from "libav.js";
 
-export class AudioDecoder {
+export class AudioDecoder extends et.DequeueEventTarget {
     constructor(init: AudioDecoderInit) {
+        super();
         this._output = init.output;
         this._error = init.error;
 
@@ -237,6 +239,7 @@ export class AudioDecoder {
             /* 3. Queue a task on the control thread event loop to decrement
              * [[decodeQueueSize]]. */
             self.decodeQueueSize--;
+            self.dispatchEvent(new CustomEvent("dequeue"));
 
             /* 4. Let decoded outputs be a list of decoded audio data outputs
              * emitted by [[codec implementation]]. */

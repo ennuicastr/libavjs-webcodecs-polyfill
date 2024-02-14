@@ -18,14 +18,16 @@
  */
 
 import * as evc from "./encoded-video-chunk";
+import * as et from "./event-target";
 import * as libavs from "./libav";
 import * as misc from "./misc";
 import * as vf from "./video-frame";
 
 import * as LibAVJS from "libav.js";
 
-export class VideoDecoder {
+export class VideoDecoder extends et.DequeueEventTarget {
     constructor(init: VideoDecoderInit) {
+        super();
         this._output = init.output;
         this._error = init.error;
 
@@ -206,6 +208,7 @@ export class VideoDecoder {
             /* 3. Queue a task on the control thread event loop to decrement
              * [[decodeQueueSize]]. */
             self.decodeQueueSize--;
+            self.dispatchEvent(new CustomEvent("dequeue"));
 
             /* 4. Let decoded outputs be a list of decoded audio data outputs
              * emitted by [[codec implementation]]. */

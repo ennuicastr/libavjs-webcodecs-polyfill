@@ -117,11 +117,6 @@ libav.js is surprisingly fast for what it is, but it ain't fast. All audio
 codecs work fine, but video struggles. This is why support for codecs outside
 the codec registry was added.
 
-libav.js also currently doesn't support multithreading, so every
-encoder/decoder is single-threaded. But, multiple libav.js threads can
-themselves be loaded, so multithreading can still be achieved by using multiple
-encoders/decoders simultaneously.
-
 `VideoFrame` is fairly incomplete. In particular, nothing to do with color
 spaces is actually implemented, and nor is cropping. The initialization of
 frames from canvas sources has many caveats in the spec, and none in
@@ -140,6 +135,3 @@ LibAVJS-WebCodecs-Polyfill always lets the event queue finish.
 The framerate reported to video codecs is the nearest whole number to the input
 framerate. This should usually only affect bitrate and latency calculations, as
 each frame is individually timestamped.
-
-All queues are shared per each encoder/decoder, and the `ondequeue` event is not
-supported.

@@ -18,6 +18,7 @@
  */
 
 import * as evc from "./encoded-video-chunk";
+import * as et from "./event-target";
 import * as libavs from "./libav";
 import * as misc from "./misc";
 import * as vd from "./video-decoder";
@@ -25,8 +26,9 @@ import * as vf from "./video-frame";
 
 import type * as LibAVJS from "libav.js";
 
-export class VideoEncoder {
+export class VideoEncoder extends et.DequeueEventTarget {
     constructor(init: VideoEncoderInit) {
+        super();
         this._output = init.output;
         this._error = init.error;
 
@@ -396,6 +398,7 @@ export class VideoEncoder {
             /* 3. Queue a task on the control thread event loop to decrement
              * [[encodeQueueSize]]. */
             self.encodeQueueSize--;
+            self.dispatchEvent(new CustomEvent("dequeue"));
 
             /* 4. Let encoded outputs be a list of encoded video data outputs
              * emitted by [[codec implementation]]. */
