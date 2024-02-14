@@ -435,7 +435,7 @@ export class VideoEncoder {
                 timestamp = libav.i64tof64(packet.pts, packet.ptshi);
             else
                 timestamp = packet.ptshi * 0x100000000 + packet.pts;
-            timstamp *= 1000;
+            timestamp *= 1000;
 
             const chunk = new evc.EncodedVideoChunk({
                 type: <any> type, timestamp,
