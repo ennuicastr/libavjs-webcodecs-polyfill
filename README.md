@@ -126,9 +126,6 @@ mandatory field of `VideoFrameInit`.
 `VideoEncoder` assumes that `VideoFrame`s passed to it are fairly sane (i.e.,
 the planes are lain out in the obvious way).
 
-Every time the spec specifies a `sequence`, LibAVJS-WebCodecs-Polyfill only
-works with an array.
-
 Certain events are supposed to eagerly halt the event queue, but
 LibAVJS-WebCodecs-Polyfill always lets the event queue finish.
 

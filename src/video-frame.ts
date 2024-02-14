@@ -101,7 +101,11 @@ export class VideoFrame {
             this.duration = init.duration;
 
         if (init.layout) {
-            this._layout = init.layout; // FIXME: Make sure it's the right size
+            // FIXME: Make sure it's the right size
+            if (init.layout instanceof Array)
+                this._layout = init.layout;
+            else
+                this._layout = Array.from(init.layout);
         } else {
             const numPlanes_ = numPlanes(format);
             const layout: PlaneLayout[] = [];
@@ -189,7 +193,13 @@ export class VideoFrame {
 
         // 6. Let optLayout be undefined.
         // 7. If options.layout exists, assign its value to optLayout.
-        let optLayout = options.layout || null;
+        let optLayout: PlaneLayout[] | null = null;
+        if (options.layout) {
+            if (options.layout instanceof Array)
+                optLayout = options.layout;
+            else
+                optLayout = Array.from(options.layout);
+        }
 
         /* 8. Let combinedLayout be the result of running the Compute Layout
          * and Allocation Size algorithm with parsedRect, [[format]], and
@@ -597,7 +607,7 @@ export interface VideoFrameBufferInit {
     duration?: number; // microseconds
 
     // Default layout is tightly-packed.
-    layout?: PlaneLayout[];
+    layout?: ArrayLike<PlaneLayout>;
 
     // Default visible rect is coded size positioned at (0,0)
     visibleRect?: DOMRectInit;
@@ -781,7 +791,7 @@ export interface PlaneLayout {
 
 export interface VideoFrameCopyToOptions {
     rect?: DOMRectInit;
-    layout?: PlaneLayout[];
+    layout?: ArrayLike<PlaneLayout>;
 }
 
 interface ComputedPlaneLayout {
