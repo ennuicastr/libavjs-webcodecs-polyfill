@@ -31,7 +31,7 @@ if (typeof importScripts !== "undefined") {
         LibAV = {
             base: url.pathname.replace(/\/[^\/]*$/, "/../../node_modules/libav.js/dist")
         };
-        importScripts(LibAV.base + "/libav-4.6.6.0-open-media.js");
+        importScripts(LibAV.base + "/libav-4.10.6.1.1-open-media.js");
     }
     importScripts("../../libavjs-webcodecs-polyfill.js");
 }

@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021-2023 Yahweasel
+ * Copyright (c) 2021-2024 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -37,6 +37,8 @@ import type * as LibAVJS from "libav.js";
 import '@ungap/global-this';
 declare let LibAV: LibAVJS.LibAVWrapper;
 
+declare let importScripts: any;
+
 /**
  * Load LibAV-WebCodecs-Polyfill.
  */
@@ -52,17 +54,24 @@ export async function load(options: {
 
     // Maybe load libav
     if (!options.LibAV && typeof LibAV === "undefined") {
-        await new Promise((res, rej) => {
+        await new Promise<unknown>((res, rej) => {
             // Can't load workers from another origin
             libavOptions.noworker = true;
 
             // Load libav
-            LibAV = <any> {base: "https://unpkg.com/libav.js@4.3.6/dist"};
-            const scr = document.createElement("script");
-            scr.src = "https://unpkg.com/libav.js@4.3.6/dist/libav-4.3.6.0-open-media.js";
-            scr.onload = res;
-            scr.onerror = rej;
-            document.body.appendChild(scr);
+            const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-open-media@4.10.6/dist";
+            (<any> LibAV) = {base: libavBase};
+            const libavVar = "libav-4.10.6.1.1-open-media.js";
+            if (typeof importScripts !== "undefined") {
+                importScripts(`${libavBase}/${libavVar}`);
+                res(void 0);
+            } else {
+                const scr = document.createElement("script");
+                scr.src = "https://cdn.jsdelivr.net/npm/@libav.js/variant-open-media@4.10.6/dist/libav-4.10.6.1.1-open-media.js";
+                scr.onload = res;
+                scr.onerror = rej;
+                document.body.appendChild(scr);
+            }
         });
     }
 

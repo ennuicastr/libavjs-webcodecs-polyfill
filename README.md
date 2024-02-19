@@ -34,9 +34,12 @@ as a [ponyfill](https://ponyfill.com), with the API under the global
 `LibAVWebCodecs` object.
 
 If you don't bring your own libav.js, LibAVJS-WebCodecs-Polyfill will load its
-own, but it is highly recommended that you do *not* use this option, because
-libav.js is designed to use Web Workers, and Web Workers cannot be loaded from
-a different origin. This will hurt both performance and responsiveness.
+own. If you load LibAVJS-WebCodecs-Polyfill in the browser context (and not a
+worker thread), it is highly recommended that you do *not* use this option,
+because libav.js is designed to use Web Workers, and Web Workers cannot be
+loaded from a different origin. This will hurt both performance and
+responsiveness. That is, it is recommended that *either* you load libav.js
+yourself, *or* you use LibAVJS-WebCodecs-Polyfill in a Worker thread (or both!).
 
 You can use LibAVJS-WebCodecs-Polyfill along with a browser implementation of
 WebCodecs, but you cannot mix and match raw data objects from each (e.g.,
