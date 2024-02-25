@@ -17,7 +17,12 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-export class HasAEventTarget {
+/* Unfortunately, browsers don't let us extend EventTarget. So, we implement an
+ * EventTarget interface with a “has-a” relationship instead of an “is-a”
+ * relationship. We have an event target, and expose its event functions as our
+ * own. */
+
+export class HasAEventTarget implements EventTarget {
     constructor() {
         const ev = this._eventer = new EventTarget();
         this.addEventListener = ev.addEventListener.bind(ev);
