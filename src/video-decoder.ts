@@ -28,15 +28,51 @@ import * as LibAVJS from "libav.js";
 export class VideoDecoder extends et.DequeueEventTarget {
     constructor(init: VideoDecoderInit) {
         super();
-        this._output = init.output;
-        this._error = init.error;
 
-        this.state = "unconfigured";
-        this.decodeQueueSize = 0;
+        // 1. Let d be a new VideoDecoder object.
 
+        // 2. Assign a new queue to [[control message queue]].
         this._p = Promise.all([]);
+
+        // 3. Assign false to [[message queue blocked]].
+        // (unneeded in polyfill)
+
+        // 4. Assign null to [[codec implementation]].
         this._libav = null;
         this._codec = this._c = this._pkt = this._frame = 0;
+
+        /* 5. Assign the result of starting a new parallel queue to
+         *    [[codec work queue]]. */
+        // (shared queue)
+
+        // 6. Assign false to [[codec saturated]].
+        // (saturation not needed)
+
+        // 7. Assign init.output to [[output callback]].
+        this._output = init.output;
+
+        // 8. Assign init.error to [[error callback]].
+        this._error = init.error;
+
+        // 9. Assign null to [[active decoder config]].
+        // (part of codec)
+
+        // 10. Assign true to [[key chunk required]].
+        // (part of codec)
+
+        // 11. Assign "unconfigured" to [[state]]
+        this.state = "unconfigured";
+
+        // 12. Assign 0 to [[decodeQueueSize]].
+        this.decodeQueueSize = 0;
+
+        // 13. Assign a new list to [[pending flush promises]].
+        // (shared queue)
+
+        // 14. Assign false to [[dequeue event scheduled]].
+        // (not needed in polyfill)
+
+        // 15. Return d.
     }
 
     /* NOTE: These should technically be readonly, but I'm implementing them as
@@ -58,8 +94,6 @@ export class VideoDecoder extends et.DequeueEventTarget {
     private _frame: number;
 
     configure(config: VideoDecoderConfig): void {
-        const self = this;
-
         // 1. If config is not a valid VideoDecoderConfig, throw a TypeError.
         // NOTE: We don't support sophisticated codec string parsing (yet)
 
@@ -75,30 +109,35 @@ export class VideoDecoder extends et.DequeueEventTarget {
         this.state = "configured";
 
         // 4. Set [[key chunk required]] to true.
-        // NOTE: Not implemented
+        // (part of the codec)
 
         // 5. Queue a control message to configure the decoder with config.
-        this._p = this._p.then(async function() {
+        this._p = this._p.then(async () => {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
             const supported = libavs.decoder(config.codec, config);
 
-            /* 2. If supported is true, assign [[codec implementation]] with an
-             * implementation supporting config. */
-            if (supported) {
-                const libav = self._libav = await libavs.get();
-
-                // Initialize
-                [self._codec, self._c, self._pkt, self._frame] =
-                    await libav.ff_init_decoder(supported.codec);
-                await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
+            /* 2. If supported is false, queue a task to run the Close
+             *    VideoDecoder algorithm with NotSupportedError and abort these
+             *    steps. */
+            if (!supported) {
+                this._closeVideoDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
+                return;
             }
 
-            /* 3. Otherwise, run the Close VideoDecoder algorithm with
-             * NotSupportedError DOMException. */
-            else {
-                self._closeVideoDecoder(new DOMException("Unsupported codec", "NotSupportedError"));
-            }
+            /* 3. If needed, assign [[codec implementation]] with an
+             *    implementation supporting config. */
+            // 4. Configure [[codec implementation]] with config.
+            const libav = this._libav = await libavs.get();
+
+            // Initialize
+            [this._codec, this._c, this._pkt, this._frame] =
+                await libav.ff_init_decoder(supported.codec);
+            await libav.AVCodecContext_time_base_s(this._c, 1, 1000);
+
+            // 5. queue a task to run the following steps:
+                // 1. Assign false to [[message queue blocked]].
+                // 2. Queue a task to Process the control message queue.
 
         }).catch(this._error);
     }
@@ -126,9 +165,8 @@ export class VideoDecoder extends et.DequeueEventTarget {
          * resources. */
         this._p = this._p.then(() => this._free());
 
-        /* 4. If exception is not an AbortError DOMException, queue a task on
-         * the control thread event loop to invoke the [[error callback]] with
-         * exception. */
+        /* 4. If exception is not an AbortError DOMException, invoke the
+         *    [[error callback]] with exception. */
         if (exception.name !== "AbortError")
             this._p = this._p.then(() => { this._error(exception); });
     }
@@ -171,6 +209,11 @@ export class VideoDecoder extends et.DequeueEventTarget {
 
             let decodedOutputs: LibAVJS.Frame[] = null;
 
+            /* 3. Decrement [[decodeQueueSize]] and run the Schedule Dequeue
+             *    Event algorithm. */
+            self.decodeQueueSize--;
+            self.dispatchEvent(new CustomEvent("dequeue"));
+
             // 1. Attempt to use [[codec implementation]] to decode the chunk.
             try {
                 // Convert to a libav packet
@@ -205,16 +248,19 @@ export class VideoDecoder extends et.DequeueEventTarget {
                 });
             }
 
-            /* 3. Queue a task on the control thread event loop to decrement
-             * [[decodeQueueSize]]. */
-            self.decodeQueueSize--;
-            self.dispatchEvent(new CustomEvent("dequeue"));
 
-            /* 4. Let decoded outputs be a list of decoded audio data outputs
-             * emitted by [[codec implementation]]. */
-            /* 5. If decoded outputs is not empty, queue a task on the control
-             * thread event loop to run the Output VideoData algorithm with
-             * decoded outputs. */
+            /* 3. If [[codec saturated]] equals true and
+             *    [[codec implementation]] is no longer saturated, queue a task
+             *    to perform the following steps: */
+                // 1. Assign false to [[codec saturated]].
+                // 2. Process the control message queue.
+            // (unneeded)
+
+            /* 4. Let decoded outputs be a list of decoded video data outputs
+             *    emitted by [[codec implementation]] in presentation order. */
+
+            /* 5. If decoded outputs is not empty, queue a task to run the
+             *    Output VideoFrame algorithm with decoded outputs. */
             if (decodedOutputs)
                 self._outputVideoFrames(decodedOutputs);
 
@@ -321,34 +367,58 @@ export class VideoDecoder extends et.DequeueEventTarget {
         }
     }
 
-
     flush(): Promise<void> {
-        const self = this;
+        /* 1. If [[state]] is not "configured", return a promise rejected with
+         *    InvalidStateError DOMException. */
+        if (this.state !== "configured")
+            throw new DOMException("Invalid state", "InvalidStateError");
 
-        const ret = this._p.then(async function() {
-            if (!self._c)
+        // 2. Set [[key chunk required]] to true.
+        // (handled by codec)
+
+        // 3. Let promise be a new Promise.
+        // 4. Append promise to [[pending flush promises]].
+        // 5. Queue a control message to flush the codec with promise.
+        // 6. Process the control message queue.
+        const ret = this._p.then(async () => {
+            /* 1. Signal [[codec implementation]] to emit all internal pending
+             *    outputs. */
+            if (!this._c)
                 return;
 
             // Make sure any last data is flushed
-            const libav = self._libav;
-            const c = self._c;
-            const pkt = self._pkt;
-            const frame = self._frame;
+            const libav = this._libav;
+            const c = this._c;
+            const pkt = this._pkt;
+            const frame = this._frame;
 
             let decodedOutputs: LibAVJS.Frame[] = null;
 
             try {
                 decodedOutputs = await libav.ff_decode_multi(c, pkt, frame, [], true);
             } catch (ex) {
-                self._p = self._p.then(() => {
-                    self._closeVideoDecoder(ex);
+                this._p = this._p.then(() => {
+                    this._closeVideoDecoder(ex);
                 });
             }
 
-            if (decodedOutputs)
-                self._outputVideoFrames(decodedOutputs);
+            /* 2. Let decoded outputs be a list of decoded video data outputs
+             *    emitted by [[codec implementation]]. */
+            // 3. Queue a task to perform these steps:
+            {
+                /* 1. If decoded outputs is not empty, run the Output VideoFrame
+                 *    algorithm with decoded outputs. */
+                if (decodedOutputs)
+                    this._outputVideoFrames(decodedOutputs);
+
+                // 2. Remove promise from [[pending flush promises]].
+                // 3. Resolve promise.
+            }
+
         });
         this._p = ret;
+
+        // 7. Return promise.
         return ret;
     }
 
