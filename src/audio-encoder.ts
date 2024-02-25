@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021-2023 Yahweasel
+ * Copyright (c) 2021-2024 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -29,17 +29,49 @@ import type * as LibAVJS from "libav.js";
 export class AudioEncoder extends et.DequeueEventTarget {
     constructor(init: AudioEncoderInit) {
         super();
-        this._output = init.output;
-        this._error = init.error;
 
-        this.state = "unconfigured";
-        this.encodeQueueSize = 0;
+        // 1. Let e be a new AudioEncoder object.
 
+        // 2. Assign a new queue to [[control message queue]].
         this._p = Promise.all([]);
+
+        // 3. Assign false to [[message queue blocked]].
+        // (unused in polyfill)
+
+        // 4. Assign null to [[codec implementation]].
         this._libav = null;
         this._codec = this._c = this._frame = this._pkt = 0;
         this._filter_in_ctx = this._filter_out_ctx = null;
         this._filter_graph = this._buffersrc_ctx = this._buffersink_ctx = 0;
+
+        /* 5. Assign the result of starting a new parallel queue to
+         *    [[codec work queue]]. */
+        // (shared queue)
+
+        // 6. Assign false to [[codec saturated]].
+        // (saturation unneeded in the polyfill)
+
+        // 7. Assign init.output to [[output callback]].
+        this._output = init.output;
+
+        // 8. Assign init.error to [[error callback]].
+        this._error = init.error;
+
+        // 9. Assign null to [[active encoder config]].
+        // 10. Assign null to [[active output config]].
+        // (both part of the codec)
+
+        // 11. Assign "unconfigured" to [[state]]
+        this.state = "unconfigured";
+
+        // 12. Assign 0 to [[encodeQueueSize]].
+        this.encodeQueueSize = 0;
+
+        // 13. Assign a new list to [[pending flush promises]].
+        // 14. Assign false to [[dequeue event scheduled]].
+        // (shared queue)
+
+        // 15. Return e.
     }
 
     /* NOTE: These should technically be readonly, but I'm implementing them as
@@ -102,32 +134,38 @@ export class AudioEncoder extends et.DequeueEventTarget {
             }};
             self._outputMetadataFilled = false;
 
-            /* 2. If supported is true, assign [[codec implementation]] with an
-             * implementation supporting config. */
-            if (supported) {
-                const libav = self._libav = await libavs.get();
-
-                // And initialize
-                let frame_size: number;
-                [self._codec, self._c, self._frame, self._pkt, frame_size] =
-                    await libav.ff_init_encoder(supported.codec, supported);
-                self._pts = 0;
-                await libav.AVCodecContext_time_base_s(self._c, 1, supported.ctx.sample_rate);
-
-                // Be ready to set up the filter
-                self._filter_out_ctx = {
-                    sample_rate: supported.ctx.sample_rate,
-                    sample_fmt: supported.ctx.sample_fmt,
-                    channel_layout: supported.ctx.channel_layout,
-                    frame_size
-                };
-            }
-
-            /* 3. Otherwise, run the Close AudioEncoder algorithm with
-             * NotSupportedError and abort these steps. */
-            else {
+            /* 2. If supported is false, queue a task to run the Close
+             *    AudioEncoder algorithm with NotSupportedError and abort these
+             *    steps. */
+            if (!supported) {
                 self._closeAudioEncoder(new DOMException("Unsupported codec", "NotSupportedError"));
+                return;
             }
+
+            /* 3. If needed, assign [[codec implementation]] with an
+             *    implementation supporting config. */
+            // 4. Configure [[codec implementation]] with config.
+            const libav = self._libav = await libavs.get();
+
+            // And initialize
+            let frame_size: number;
+            [self._codec, self._c, self._frame, self._pkt, frame_size] =
+                await libav.ff_init_encoder(supported.codec, supported);
+            self._pts = 0;
+            await libav.AVCodecContext_time_base_s(self._c, 1, supported.ctx.sample_rate);
+
+            // Be ready to set up the filter
+            self._filter_out_ctx = {
+                sample_rate: supported.ctx.sample_rate,
+                sample_fmt: supported.ctx.sample_fmt,
+                channel_layout: supported.ctx.channel_layout,
+                frame_size
+            };
+
+            // 5. queue a task to run the following steps:
+                // 1. Assign false to [[message queue blocked]].
+                // 2. Queue a task to Process the control message queue.
+            // (shared queue)
 
         }).catch(this._error);
     }
@@ -161,9 +199,8 @@ export class AudioEncoder extends et.DequeueEventTarget {
          * resources. */
         this._p = this._p.then(() => this._free());
 
-        /* 4. If exception is not an AbortError DOMException, queue a task on
-         * the control thread event loop to invoke the [[error callback]] with
-         * exception. */
+        /* 4. If exception is not an AbortError DOMException, invoke the
+         *    [[error callback]] with exception. */
         if (exception.name !== "AbortError")
             this._p = this._p.then(() => { this._error(exception); });
     }
@@ -181,8 +218,6 @@ export class AudioEncoder extends et.DequeueEventTarget {
     }
 
     encode(data: ad.AudioData): void {
-        const self = this;
-
         /* 1. If the value of data’s [[Detached]] internal slot is true, throw
          * a TypeError. */
         if (data._libavGetData() === null)
@@ -193,20 +228,25 @@ export class AudioEncoder extends et.DequeueEventTarget {
             throw new DOMException("Unconfigured", "InvalidStateError");
 
         /* 3. Let dataClone hold the result of running the Clone AudioData
-         * algorithm with data. */
+         *    algorithm with data. */
         const dataClone = data.clone();
 
         // 4. Increment [[encodeQueueSize]].
         this.encodeQueueSize++;
 
         // 5. Queue a control message to encode dataClone.
-        this._p = this._p.then(async function() {
-            const libav = self._libav;
-            const c = self._c;
-            const pkt = self._pkt;
-            const framePtr = self._frame;
+        this._p = this._p.then(async () => {
+            const libav = this._libav;
+            const c = this._c;
+            const pkt = this._pkt;
+            const framePtr = this._frame;
 
             let encodedOutputs: LibAVJS.Packet[] = null;
+
+            /* 3. Decrement [[encodeQueueSize]] and run the Schedule Dequeue
+             *    Event algorithm. */
+            this.encodeQueueSize--;
+            this.dispatchEvent(new CustomEvent("dequeue"));
 
             /* 1. Attempt to use [[codec implementation]] to encode the media
              * resource described by dataClone. */
@@ -283,13 +323,13 @@ export class AudioEncoder extends et.DequeueEventTarget {
 
                 // Check if the filter needs to be reconfigured
                 let preOutputs: LibAVJS.Packet[] = null;
-                if (self._filter_in_ctx) {
-                    const filter_ctx = self._filter_in_ctx;
+                if (this._filter_in_ctx) {
+                    const filter_ctx = this._filter_in_ctx;
                     if (filter_ctx.sample_fmt !== frame.format ||
                         filter_ctx.channel_layout !== frame.channel_layout ||
                         filter_ctx.sample_rate !== frame.sample_rate) {
                         // Need a new filter! First, get anything left in the filter
-                        let fframes = await self._filter([], true);
+                        let fframes = await this._filter([], true);
 
                         // Can't send partial frames through the encoder
                         fframes = fframes.filter(x => {
@@ -300,7 +340,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
                             } else {
                                 frame_size = x.data.length / x.channels;
                             }
-                            return frame_size === self._filter_out_ctx.frame_size;
+                            return frame_size === this._filter_out_ctx.frame_size;
                         });
 
                         if (fframes.length) {
@@ -308,58 +348,61 @@ export class AudioEncoder extends et.DequeueEventTarget {
                                 await libav.ff_encode_multi(c, framePtr, pkt, fframes);
                         }
 
-                        await libav.avfilter_graph_free_js(self._filter_graph);
-                        self._filter_in_ctx = null;
-                        self._filter_graph = self._buffersrc_ctx =
-                            self._buffersink_ctx = 0;
+                        await libav.avfilter_graph_free_js(this._filter_graph);
+                        this._filter_in_ctx = null;
+                        this._filter_graph = this._buffersrc_ctx =
+                            this._buffersink_ctx = 0;
                     }
                 }
 
                 // Set up the filter
-                if (!self._filter_graph) {
-                    const filter_ctx = self._filter_in_ctx = {
+                if (!this._filter_graph) {
+                    const filter_ctx = this._filter_in_ctx = {
                         sample_rate: frame.sample_rate,
                         sample_fmt: frame.format,
                         channel_layout: frame.channel_layout
                     };
-                    [self._filter_graph, self._buffersrc_ctx, self._buffersink_ctx] =
+                    [this._filter_graph, this._buffersrc_ctx, this._buffersink_ctx] =
                         await libav.ff_init_filter_graph("aresample", filter_ctx,
-                            self._filter_out_ctx);
+                            this._filter_out_ctx);
                 }
 
                 // Filter
-                const fframes = await self._filter([frame]);
+                const fframes = await this._filter([frame]);
 
                 // And encode
                 encodedOutputs =
                     await libav.ff_encode_multi(c, framePtr, pkt, fframes);
                 if (preOutputs)
                     encodedOutputs = preOutputs.concat(encodedOutputs);
-                if (encodedOutputs.length && !self._outputMetadataFilled &&
+                if (encodedOutputs.length && !this._outputMetadataFilled &&
                     fframes && fframes.length)
-                    await self._getOutputMetadata(fframes[0]);
+                    await this._getOutputMetadata(fframes[0]);
 
             /* 2. If encoding results in an error, queue a task on the control
              * thread event loop to run the Close AudioEncoder algorithm with
              * EncodingError. */
             } catch (ex) {
-                self._p = self._p.then(() => {
-                    self._closeAudioEncoder(ex);
+                this._p = this._p.then(() => {
+                    this._closeAudioEncoder(ex);
                 });
             }
 
-            /* 3. Queue a task on the control thread event loop to decrement
-             * [[encodeQueueSize]]. */
-            self.encodeQueueSize--;
-            self.dispatchEvent(new CustomEvent("dequeue"));
+
+            /* 3. If [[codec saturated]] equals true and
+             *    [[codec implementation]] is no longer saturated, queue a task
+             *    to perform the following steps: */
+                // 1. Assign false to [[codec saturated]].
+                // 2. Process the control message queue.
+            // (no saturation)
 
             /* 4. Let encoded outputs be a list of encoded audio data outputs
-             * emitted by [[codec implementation]]. */
-            /* 5. If encoded outputs is not empty, queue a task on the control
-             * thread event loop to run the Output EncodedAudioChunks algorithm
-             * with encoded outputs. */
+             *    emitted by [[codec implementation]]. */
+
+            /* 5. If encoded outputs is not empty, queue a task to run the
+             *    Output EncodedAudioChunks algorithm with encoded outputs. */
             if (encodedOutputs)
-                self._outputEncodedAudioChunks(encodedOutputs);
+                this._outputEncodedAudioChunks(encodedOutputs);
 
         }).catch(this._error);
     }
@@ -425,39 +468,64 @@ export class AudioEncoder extends et.DequeueEventTarget {
     }
 
     flush(): Promise<void> {
-        const self = this;
+        /* 1. If [[state]] is not "configured", return a promise rejected with
+         *    InvalidStateError DOMException. */
+        if (this.state !== "configured")
+            throw new DOMException("Invalid state", "InvalidStateError");
 
-        const ret = this._p.then(async function() {
-            if (!self._c)
+        // 2. Let promise be a new Promise.
+        // 3. Append promise to [[pending flush promises]].
+        // 4. Queue a control message to flush the codec with promise.
+        // 5. Process the control message queue.
+        // 6. Return promise.
+        const ret = this._p.then(async () => {
+            if (!this._c)
                 return;
 
+            /* 1. Signal [[codec implementation]] to emit all internal pending
+             *    outputs. */
+
             // Make sure any last data is flushed
-            const libav = self._libav;
-            const c = self._c;
-            const frame = self._frame;
-            const pkt = self._pkt;
-            const buffersrc_ctx = self._buffersrc_ctx;
-            const buffersink_ctx = self._buffersink_ctx;
+            const libav = this._libav;
+            const c = this._c;
+            const frame = this._frame;
+            const pkt = this._pkt;
+            const buffersrc_ctx = this._buffersrc_ctx;
+            const buffersink_ctx = this._buffersink_ctx;
 
             let encodedOutputs: LibAVJS.Packet[] = null;
 
             try {
                 let fframes: LibAVJS.Frame[] = null;
                 if (buffersrc_ctx)
-                    fframes = await self._filter([], true);
+                    fframes = await this._filter([], true);
                 encodedOutputs =
                     await libav.ff_encode_multi(c, frame, pkt, fframes || [],
                         true);
-                if (!self._outputMetadataFilled && fframes && fframes.length)
-                    await self._getOutputMetadata(fframes[0]);
+                if (!this._outputMetadataFilled && fframes && fframes.length)
+                    await this._getOutputMetadata(fframes[0]);
             } catch (ex) {
-                self._p = self._p.then(() => {
-                    self._closeAudioEncoder(ex);
+                this._p = this._p.then(() => {
+                    this._closeAudioEncoder(ex);
                 });
             }
 
-            if (encodedOutputs)
-                self._outputEncodedAudioChunks(encodedOutputs);
+            /* 2. Let encoded outputs be a list of encoded audio data outputs
+             *    emitted by [[codec implementation]]. */
+
+            // 3. Queue a task to perform these steps:
+            {
+
+                /* 1. If encoded outputs is not empty, run the Output
+                 *    EncodedAudioChunks algorithm with encoded outputs. */
+                if (encodedOutputs)
+                    this._outputEncodedAudioChunks(encodedOutputs);
+
+                // 2. Remove promise from [[pending flush promises]].
+                // 3. Resolve promise.
+                // (shared queue)
+            }
+
         });
         this._p = ret;
         return ret;
