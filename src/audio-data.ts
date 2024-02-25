@@ -22,15 +22,84 @@ type AudioTypedArray = Uint8Array | Int16Array | Int32Array | Float32Array;
 
 export class AudioData {
     constructor(init: AudioDataInit) {
-        const format = this.format = init.format;
-        const sampleRate = this.sampleRate = init.sampleRate;
-        const numberOfFrames = this.numberOfFrames = init.numberOfFrames;
-        this.numberOfChannels = init.numberOfChannels;
-        this.timestamp = init.timestamp;
-        const data = this._data =
-            audioView(format, (<any> init.data).buffer || init.data,
-                      (<any> init.data).byteOffset || 0);
-        this.duration = numberOfFrames / sampleRate * 1000000;
+        // 1. If init is not a valid AudioDataInit, throw a TypeError.
+        AudioData._checkValidAudioDataInit(init);
+
+        /* 2. If init.transfer contains more than one reference to the same
+         *    ArrayBuffer, then throw a DataCloneError DOMException. */
+        // 3. For each transferable in init.transfer:
+            // 1. If [[Detached]] internal slot is true, then throw a DataCloneError DOMException.
+        // (Not worth doing in polyfill)
+
+        // 4. Let frame be a new AudioData object, initialized as follows:
+        {
+
+            // 1. Assign false to [[Detached]].
+            // (not doable in polyfill)
+
+            // 2. Assign init.format to [[format]].
+            this.format = init.format;
+
+            // 3. Assign init.sampleRate to [[sample rate]].
+            this.sampleRate = init.sampleRate;
+
+            // 4. Assign init.numberOfFrames to [[number of frames]].
+            this.numberOfFrames = init.numberOfFrames;
+
+            // 5. Assign init.numberOfChannels to [[number of channels]].
+            this.numberOfChannels = init.numberOfChannels;
+
+            // 6. Assign init.timestamp to [[timestamp]].
+            this.timestamp = init.timestamp;
+
+            /* 7. If init.transfer contains an ArrayBuffer referenced by
+             * init.data the User Agent MAY choose to: */
+            let transfer = false;
+            if (init.transfer) {
+
+                // 1. Let resource be a new media resource referencing sample data in data.
+                let inBuffer: ArrayBuffer;
+                if ((<any> init.data).buffer)
+                    inBuffer = (<any> init.data).buffer;
+                else
+                    inBuffer = <ArrayBuffer> init.data;
+
+                const t = Array.from(init.transfer);
+                for (const b of t) {
+                    if (b === inBuffer) {
+                        transfer = true;
+                        break;
+                    }
+                }
+            }
+
+            // 8. Otherwise:
+                // 1. Let resource be a media resource containing a copy of init.data.
+
+            // 9. Let resourceReference be a reference to resource.
+            let inData: BufferSource, byteOffset = 0;
+            if (transfer) {
+                inData = init.data;
+                byteOffset = (<any> init.data).byteOffset || 0;
+            } else {
+                inData = (<any> init.data).slice(0);
+            }
+            const resourceReference = audioView(
+                init.format, (<any> inData).buffer || inData, byteOffset
+            );
+
+            // 10. Assign resourceReference to [[resource reference]].
+            this._data = resourceReference;
+        }
+
+        // 5. For each transferable in init.transfer:
+            // 1. Perform DetachArrayBuffer on transferable
+        // (Already done by transferring)
+
+        // 6. Return frame.
+
+        // Duration not calculated in spec?
+        this.duration = init.numberOfFrames / init.sampleRate * 1000000;
     }
 
     readonly format: AudioSampleFormat;
@@ -44,6 +113,42 @@ export class AudioData {
 
     // Internal
     _libavGetData() { return this._data; }
+
+    private static _checkValidAudioDataInit(init: AudioDataInit) {
+        // 1. If sampleRate less than or equal to 0, return false.
+        if (init.sampleRate <= 0)
+            throw new TypeError(`Invalid sample rate ${init.sampleRate}`);
+
+        // 2. If numberOfFrames = 0, return false.
+        if (init.numberOfFrames <= 0)
+            throw new TypeError(`Invalid number of frames ${init.numberOfFrames}`);
+
+        // 3. If numberOfChannels = 0, return false.
+        if (init.numberOfChannels <= 0)
+            throw new TypeError(`Invalid number of channels ${init.numberOfChannels}`);
+
+        // 4. Verify data has enough data by running the following steps:
+        {
+
+            // 1. Let totalSamples be the product of multiplying numberOfFrames by numberOfChannels.
+            const totalSamples = init.numberOfFrames * init.numberOfChannels;
+
+            // 2. Let bytesPerSample be the number of bytes per sample, as defined by the format.
+            const bytesPerSample_ = bytesPerSample(init.format);
+
+            // 3. Let totalSize be the product of multiplying bytesPerSample with totalSamples.
+            const totalSize = bytesPerSample_ * totalSamples;
+
+            // 4. Let dataSize be the size in bytes of data.
+            const dataSize = init.data.byteLength;
+
+            // 5. If dataSize is less than totalSize, return false.
+            if (dataSize < totalSize)
+                throw new TypeError(`This audio data must be at least ${totalSize} bytes`);
+        }
+
+        // 5. Return true.
+    }
 
     allocationSize(options: AudioDataCopyToOptions): number {
         // 1. If [[Detached]] is true, throw an InvalidStateError DOMException.
@@ -164,10 +269,11 @@ export class AudioData {
 
         /* 7. Let resource be the media resource referenced by [[resource
          * reference]]. */
+        const resource = this._data;
 
         /* 8. Let planeFrames be the region of resource corresponding to
          * options.planeIndex. */
-        const planeFrames = this._data.subarray(
+        const planeFrames = resource.subarray(
             options.planeIndex * this.numberOfFrames);
 
         const frameOffset = options.frameOffset || 0;
@@ -267,6 +373,7 @@ export interface AudioDataInit {
     numberOfChannels: number;
     timestamp: number;
     data: BufferSource;
+    transfer?: ArrayLike<ArrayBuffer>;
 }
 
 export type AudioSampleFormat =
@@ -285,6 +392,7 @@ export interface AudioDataCopyToOptions {
     frameCount?: number;
     format: AudioSampleFormat;
 }
+
 
 /**
  * Construct the appropriate type of ArrayBufferView for the given sample
