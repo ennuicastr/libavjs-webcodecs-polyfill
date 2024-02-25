@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021-2023 Yahweasel
+ * Copyright (c) 2021-2024 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -29,15 +29,51 @@ import type * as LibAVJS from "libav.js";
 export class VideoEncoder extends et.DequeueEventTarget {
     constructor(init: VideoEncoderInit) {
         super();
-        this._output = init.output;
-        this._error = init.error;
 
-        this.state = "unconfigured";
-        this.encodeQueueSize = 0;
+        // 1. Let e be a new VideoEncoder object.
 
+        // 2. Assign a new queue to [[control message queue]].
         this._p = Promise.all([]);
+
+        // 3. Assign false to [[message queue blocked]].
+        // (unneeded in polyfill)
+
+        // 4. Assign null to [[codec implementation]].
         this._libav = null;
         this._codec = this._c = this._frame = this._pkt = 0;
+
+        /* 5. Assign the result of starting a new parallel queue to
+         *    [[codec work queue]]. */
+        // (shared queue)
+
+        // 6. Assign false to [[codec saturated]].
+        // (saturation unneeded)
+
+        // 7. Assign init.output to [[output callback]].
+        this._output = init.output;
+
+        // 8. Assign init.error to [[error callback]].
+        this._error = init.error;
+
+        // 9. Assign null to [[active encoder config]].
+        // (part of codec)
+
+        // 10. Assign null to [[active output config]].
+        this._metadata = null;
+
+        // 11. Assign "unconfigured" to [[state]]
+        this.state = "unconfigured";
+
+        // 12. Assign 0 to [[encodeQueueSize]].
+        this.encodeQueueSize = 0;
+
+        // 13. Assign a new list to [[pending flush promises]].
+        // (shared queue)
+
+        // 14. Assign false to [[dequeue event scheduled]].
+        // (shared queue)
+
+        // 15. Return e.
     }
 
     /* NOTE: These should technically be readonly, but I'm implementing them as
@@ -59,7 +95,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
     private _pkt: number;
     private _extradataSet: boolean;
     private _extradata: Uint8Array;
-    private _metadata: EncodedVideoChunkMetadata;
+    private _metadata: EncodedVideoChunkMetadata | null;
 
     // Software scaler state, if used
     private _sws: number;
@@ -73,8 +109,6 @@ export class VideoEncoder extends et.DequeueEventTarget {
     private _sar_den: number;
 
     configure(config: VideoEncoderConfig): void {
-        const self = this;
-
         // 1. If config is not a valid VideoEncoderConfig, throw a TypeError.
         // NOTE: We don't support sophisticated codec string parsing (yet)
 
@@ -90,55 +124,60 @@ export class VideoEncoder extends et.DequeueEventTarget {
         this.state = "configured";
 
         // 4. Queue a control message to configure the encoder using config.
-        this._p = this._p.then(async function() {
+        this._p = this._p.then(async () => {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
             const supported = libavs.encoder(config.codec, config);
 
-            /* 2. If supported is true, assign [[codec implementation]] with an
-             * implementation supporting config. */
-            if (supported) {
-                const libav = self._libav = await libavs.get();
-                self._metadata = {
-                    decoderConfig: {
-                        codec: supported.codec
-                    }
-                };
+            /* 2. If supported is false, queue a task to run the Close
+             *    VideoEncoder algorithm with NotSupportedError and abort these
+             *    steps. */
+            if (!supported) {
+                this._closeVideoEncoder(new DOMException("Unsupported codec", "NotSupportedError"));
+                return;
+            }
 
-                // And initialize
-                [self._codec, self._c, self._frame, self._pkt] =
-                    await libav.ff_init_encoder(supported.codec, supported);
-                self._extradataSet = false;
-                self._extradata = null;
-                await libav.AVCodecContext_time_base_s(self._c, 1, 1000);
-
-                const width = config.width;
-                const height = config.height;
-
-                self._sws = 0;
-                self._swsFrame = 0;
-                self._swsOut = {
-                    width, height,
-                    format: supported.ctx.pix_fmt
-                };
-
-                // Check for non-square pixels
-                const dWidth = config.displayWidth || width;
-                const dHeight = config.displayHeight || height;
-                if (dWidth !== width || dHeight !== height) {
-                    self._nonSquarePixels = true;
-                    self._sar_num = dWidth * height;
-                    self._sar_den = dHeight * width;
-                } else {
-                    self._nonSquarePixels = false;
+            /* 3. If needed, assign [[codec implementation]] with an
+             *    implementation supporting config. */
+            // 4. Configure [[codec implementation]] with config.
+            const libav = this._libav = await libavs.get();
+            this._metadata = {
+                decoderConfig: {
+                    codec: supported.codec
                 }
+            };
+
+            // And initialize
+            [this._codec, this._c, this._frame, this._pkt] =
+                await libav.ff_init_encoder(supported.codec, supported);
+            this._extradataSet = false;
+            this._extradata = null;
+            await libav.AVCodecContext_time_base_s(this._c, 1, 1000);
+
+            const width = config.width;
+            const height = config.height;
+
+            this._sws = 0;
+            this._swsFrame = 0;
+            this._swsOut = {
+                width, height,
+                format: supported.ctx.pix_fmt
+            };
+
+            // Check for non-square pixels
+            const dWidth = config.displayWidth || width;
+            const dHeight = config.displayHeight || height;
+            if (dWidth !== width || dHeight !== height) {
+                this._nonSquarePixels = true;
+                this._sar_num = dWidth * height;
+                this._sar_den = dHeight * width;
+            } else {
+                this._nonSquarePixels = false;
             }
 
-            /* 3. Otherwise, run the Close VideoEncoder algorithm with
-             * NotSupportedError and abort these steps. */
-            else {
-                self._closeVideoEncoder(new DOMException("Unsupported codec", "NotSupportedError"));
-            }
+            // 5. queue a task to run the following steps:
+                // 1. Assign false to [[message queue blocked]].
+                // 2. Queue a task to Process the control message queue.
 
         }).catch(this._error);
     }
@@ -172,9 +211,8 @@ export class VideoEncoder extends et.DequeueEventTarget {
          * resources. */
         this._p = this._p.then(() => this._free());
 
-        /* 4. If exception is not an AbortError DOMException, queue a task on
-         * the control thread event loop to invoke the [[error callback]] with
-         * exception. */
+        /* 4. If exception is not an AbortError DOMException, invoke the
+         *    [[error callback]] with exception. */
         if (exception.name !== "AbortError")
             this._p = this._p.then(() => { this._error(exception); });
     }
@@ -219,6 +257,11 @@ export class VideoEncoder extends et.DequeueEventTarget {
             const swsOut = self._swsOut;
 
             let encodedOutputs: LibAVJS.Packet[] = null;
+
+            /* 3. Decrement [[encodeQueueSize]] and run the Schedule Dequeue
+             *    Event algorithm. */
+            self.encodeQueueSize--;
+            self.dispatchEvent(new CustomEvent("dequeue"));
 
             /* 1. Attempt to use [[codec implementation]] to encode frameClone
              * according to options. */
@@ -386,25 +429,27 @@ export class VideoEncoder extends et.DequeueEventTarget {
                 if (encodedOutputs.length && !self._extradataSet)
                     await self._getExtradata();
 
-            /* 2. If encoding results in an error, queue a task on the control
-             * thread event loop to run the Close VideoEncoder algorithm with
-             * EncodingError. */
+            /* 2. If encoding results in an error, queue a task to run the
+             *    Close VideoEncoder algorithm with EncodingError and return. */
             } catch (ex) {
                 self._p = self._p.then(() => {
                     self._closeVideoEncoder(ex);
                 });
+                return;
             }
 
-            /* 3. Queue a task on the control thread event loop to decrement
-             * [[encodeQueueSize]]. */
-            self.encodeQueueSize--;
-            self.dispatchEvent(new CustomEvent("dequeue"));
+            /* 3. If [[codec saturated]] equals true and
+             *    [[codec implementation]] is no longer saturated, queue a task
+             *    to perform the following steps: */
+                // 1. Assign false to [[codec saturated]].
+                // 2. Process the control message queue.
+            // (unneeded in polyfill)
 
             /* 4. Let encoded outputs be a list of encoded video data outputs
-             * emitted by [[codec implementation]]. */
-            /* 5. If encoded outputs is not empty, queue a task on the control
-             * thread event loop to run the Output EncodedVideoChunks algorithm
-             * with encoded outputs. */
+             *    emitted by [[codec implementation]]. */
+
+            /* 5. If encoded outputs is not empty, queue a task to run the
+             *    Output EncodedVideoChunks algorithm with encoded outputs. */
             if (encodedOutputs)
                 self._outputEncodedVideoChunks(encodedOutputs);
 
@@ -453,35 +498,58 @@ export class VideoEncoder extends et.DequeueEventTarget {
     }
 
     flush(): Promise<void> {
-        const self = this;
+        /* 1. If [[state]] is not "configured", return a promise rejected with
+         *    InvalidStateError DOMException. */
+        if (this.state !== "configured")
+            throw new DOMException("Invalid state", "InvalidStateError");
 
+        // 2. Let promise be a new Promise.
+        // 3. Append promise to [[pending flush promises]].
+        // 4. Queue a control message to flush the codec with promise.
+        // 5. Process the control message queue.
         const ret = this._p.then(async function() {
-            if (!self._c)
+            /* 1. Signal [[codec implementation]] to emit all internal pending
+             *    outputs. */
+            if (!this._c)
                 return;
 
             // Make sure any last data is flushed
-            const libav = self._libav;
-            const c = self._c;
-            const frame = self._frame;
-            const pkt = self._pkt;
+            const libav = this._libav;
+            const c = this._c;
+            const frame = this._frame;
+            const pkt = this._pkt;
 
             let encodedOutputs: LibAVJS.Packet[] = null;
 
             try {
                 encodedOutputs =
                     await libav.ff_encode_multi(c, frame, pkt, [], true);
-                if (!self._extradataSet)
-                    await self._getExtradata();
+                if (!this._extradataSet)
+                    await this._getExtradata();
             } catch (ex) {
-                self._p = self._p.then(() => {
-                    self._closeVideoEncoder(ex);
+                this._p = this._p.then(() => {
+                    this._closeVideoEncoder(ex);
                 });
             }
 
-            if (encodedOutputs)
-                self._outputEncodedVideoChunks(encodedOutputs);
+            /* 2. Let encoded outputs be a list of encoded video data outputs
+             *    emitted by [[codec implementation]]. */
+
+            // 3. Queue a task to perform these steps:
+            {
+                /* 1. If encoded outputs is not empty, run the Output
+                 *    EncodedVideoChunks algorithm with encoded outputs. */
+                if (encodedOutputs)
+                    this._outputEncodedVideoChunks(encodedOutputs);
+
+                // 2. Remove promise from [[pending flush promises]].
+                // 3. Resolve promise.
+            }
+
         });
         this._p = ret;
+
+        // 6. Return promise.
         return ret;
     }
 
