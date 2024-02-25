@@ -57,7 +57,7 @@ export class EncodedAudioChunk {
                 if ((<any> init.data).buffer)
                     inBuffer = (<any> init.data).buffer;
                 else
-                    inBuffer = init.data;
+                    inBuffer = <ArrayBuffer> init.data;
 
                 const t = Array.from(init.transfer);
                 for (const b of t) {
