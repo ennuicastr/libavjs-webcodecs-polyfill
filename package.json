@@ -10,6 +10,8 @@
     "default": "./dist/libavjs-webcodecs-polyfill.cjs"
   },
   "scripts": {
+    "build": "tsc && rollup -c",
+    "clean": "rm -f src/*.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
