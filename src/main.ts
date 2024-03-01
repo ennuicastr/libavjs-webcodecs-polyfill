@@ -30,12 +30,11 @@ import * as venc from "./video-encoder";
 import * as rendering from "./rendering";
 
 import * as config from "./config";
-import * as libav from "./libav";
+import * as libav from "./avloader";
 import * as misc from "./misc";
 
 import type * as LibAVJS from "libav.js";
 import '@ungap/global-this';
-declare let LibAV: LibAVJS.LibAVWrapper;
 
 declare let importScripts: any;
 
@@ -53,14 +52,14 @@ export async function load(options: {
         Object.assign(libavOptions, options.libavOptions);
 
     // Maybe load libav
-    if (!options.LibAV && typeof LibAV === "undefined") {
+    if (!options.LibAV && typeof globalThis.LibAV === "undefined") {
         await new Promise<unknown>((res, rej) => {
             // Can't load workers from another origin
             libavOptions.noworker = true;
 
             // Load libav
             const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-open-media@4.10.6/dist";
-            (<any> LibAV) = {base: libavBase};
+            globalThis.LibAV = {base: libavBase};
             const libavVar = "libav-4.10.6.1.1-open-media.js";
             if (typeof importScripts !== "undefined") {
                 importScripts(`${libavBase}/${libavVar}`);

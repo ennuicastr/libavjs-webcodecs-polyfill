@@ -19,7 +19,7 @@
 
 import * as evc from "./encoded-video-chunk";
 import * as et from "./event-target";
-import * as libavs from "./libav";
+import * as libavs from "./avloader";
 import * as misc from "./misc";
 import * as vd from "./video-decoder";
 import * as vf from "./video-frame";
@@ -230,8 +230,6 @@ export class VideoEncoder extends et.DequeueEventTarget {
     }
 
     encode(frame: vf.VideoFrame, options: VideoEncoderEncodeOptions = {}) {
-        const self = this;
-
         /* 1. If the value of frame’s [[Detached]] internal slot is true, throw
          * a TypeError. */
         if (frame._libavGetData() === null)
@@ -249,19 +247,19 @@ export class VideoEncoder extends et.DequeueEventTarget {
         this.encodeQueueSize++;
 
         // 5. Queue a control message to encode frameClone.
-        this._p = this._p.then(async function() {
-            const libav = self._libav;
-            const c = self._c;
-            const pkt = self._pkt;
-            const framePtr = self._frame;
-            const swsOut = self._swsOut;
+        this._p = this._p.then(async () => {
+            const libav = this._libav;
+            const c = this._c;
+            const pkt = this._pkt;
+            const framePtr = this._frame;
+            const swsOut = this._swsOut;
 
             let encodedOutputs: LibAVJS.Packet[] = null;
 
             /* 3. Decrement [[encodeQueueSize]] and run the Schedule Dequeue
              *    Event algorithm. */
-            self.encodeQueueSize--;
-            self.dispatchEvent(new CustomEvent("dequeue"));
+            this.encodeQueueSize--;
+            this.dispatchEvent(new CustomEvent("dequeue"));
 
             /* 1. Attempt to use [[codec implementation]] to encode frameClone
              * according to options. */
@@ -357,8 +355,8 @@ export class VideoEncoder extends et.DequeueEventTarget {
                     }
 
                     // Need a scaler
-                    let sws = self._sws, swsIn = self._swsIn,
-                        swsFrame = self._swsFrame;
+                    let sws = this._sws, swsIn = this._swsIn,
+                        swsFrame = this._swsFrame;
                     if (!sws ||
                         frame.width !== swsIn.width ||
                         frame.height !== swsIn.height ||
@@ -375,12 +373,12 @@ export class VideoEncoder extends et.DequeueEventTarget {
                             swsIn.width, swsIn.height, swsIn.format,
                             swsOut.width, swsOut.height, swsOut.format,
                             2, 0, 0, 0);
-                        self._sws = sws;
-                        self._swsIn = swsIn;
+                        this._sws = sws;
+                        this._swsIn = swsIn;
 
                         // Maybe need a frame
                         if (!swsFrame)
-                            self._swsFrame = swsFrame = await libav.av_frame_alloc()
+                            this._swsFrame = swsFrame = await libav.av_frame_alloc()
                     }
 
                     // Scale and encode the frame
@@ -388,9 +386,9 @@ export class VideoEncoder extends et.DequeueEventTarget {
                     await Promise.all([
                         libav.ff_copyin_frame(framePtr, frame),
                         libav.sws_scale_frame(sws, swsFrame, framePtr),
-                        self._nonSquarePixels ?
+                        this._nonSquarePixels ?
                             libav.AVFrame_sample_aspect_ratio_s(swsFrame,
-                                self._sar_num, self._sar_den) :
+                                this._sar_num, this._sar_den) :
                             null,
                         libav.AVFrame_pts_s(swsFrame, pts),
                         libav.AVFrame_ptshi_s(swsFrame, ptshi),
@@ -413,10 +411,10 @@ export class VideoEncoder extends et.DequeueEventTarget {
                     }
 
                 } else {
-                    if (self._nonSquarePixels) {
+                    if (this._nonSquarePixels) {
                         frame.sample_aspect_ratio = [
-                            self._sar_num,
-                            self._sar_den
+                            this._sar_num,
+                            this._sar_den
                         ];
                     }
 
@@ -426,14 +424,14 @@ export class VideoEncoder extends et.DequeueEventTarget {
 
                 }
 
-                if (encodedOutputs.length && !self._extradataSet)
-                    await self._getExtradata();
+                if (encodedOutputs.length && !this._extradataSet)
+                    await this._getExtradata();
 
             /* 2. If encoding results in an error, queue a task to run the
              *    Close VideoEncoder algorithm with EncodingError and return. */
             } catch (ex) {
-                self._p = self._p.then(() => {
-                    self._closeVideoEncoder(ex);
+                this._p = this._p.then(() => {
+                    this._closeVideoEncoder(ex);
                 });
                 return;
             }
@@ -451,7 +449,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
             /* 5. If encoded outputs is not empty, queue a task to run the
              *    Output EncodedVideoChunks algorithm with encoded outputs. */
             if (encodedOutputs)
-                self._outputEncodedVideoChunks(encodedOutputs);
+                this._outputEncodedVideoChunks(encodedOutputs);
 
         }).catch(this._error);
     }
@@ -507,7 +505,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
         // 3. Append promise to [[pending flush promises]].
         // 4. Queue a control message to flush the codec with promise.
         // 5. Process the control message queue.
-        const ret = this._p.then(async function() {
+        const ret = this._p.then(async () => {
             /* 1. Signal [[codec implementation]] to emit all internal pending
              *    outputs. */
             if (!this._c)

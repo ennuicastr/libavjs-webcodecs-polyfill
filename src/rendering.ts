@@ -17,7 +17,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-import * as libav from "./libav";
+import * as libav from "./avloader";
 import * as vf from "./video-frame";
 import '@ungap/global-this';
 

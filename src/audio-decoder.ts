@@ -20,7 +20,7 @@
 import * as ad from "./audio-data";
 import * as eac from "./encoded-audio-chunk";
 import * as et from "./event-target";
-import * as libavs from "./libav";
+import * as libavs from "./avloader";
 import * as misc from "./misc";
 
 import type * as LibAVJS from "libav.js";

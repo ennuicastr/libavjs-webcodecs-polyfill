@@ -33,7 +33,7 @@ if (typeof importScripts !== "undefined") {
         };
         importScripts(LibAV.base + "/libav-4.10.6.1.1-open-media.js");
     }
-    importScripts("../../libavjs-webcodecs-polyfill.js");
+    importScripts("../../dist/libavjs-webcodecs-polyfill.js");
 }
 
 async function sampleDemux(filename, suffix) {
