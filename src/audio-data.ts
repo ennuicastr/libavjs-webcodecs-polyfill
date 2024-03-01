@@ -64,7 +64,11 @@ export class AudioData {
                 else
                     inBuffer = <ArrayBuffer> init.data;
 
-                const t = Array.from(init.transfer);
+                let t: ArrayBuffer[];
+                if (init.transfer instanceof Array)
+                    t = init.transfer;
+                else
+                    t = Array.from(init.transfer);
                 for (const b of t) {
                     if (b === inBuffer) {
                         transfer = true;
