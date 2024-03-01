@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2024 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -32,6 +32,10 @@ export class VideoFrame {
     }
 
     private _constructCanvas(image: any, init: VideoFrameInit) {
+        /* The spec essentially re-specifies “draw it”, and has specific
+         * instructions for each sort of thing it might be. So, we don't
+         * document all the steps here, we just... draw it. */
+
         // Get the width and height
         let width = 0, height = 0;
         if (image.naturalWidth) {
@@ -75,31 +79,101 @@ export class VideoFrame {
     }
 
     private _constructBuffer(data: BufferSource, init: VideoFrameBufferInit) {
-        const format = this.format = init.format;
-        const width = this.codedWidth = init.codedWidth;
-        const height = this.codedHeight = init.codedHeight;
-        this.visibleRect = new DOMRect(0, 0, width, height);
+        // 1. If init is not a valid VideoFrameBufferInit, throw a TypeError.
+        VideoFrame._checkValidVideoFrameBufferInit(init);
 
-        const dWidth = this.displayWidth =
-            init.displayWidth || init.codedWidth;
-        const dHeight = this.displayHeight =
-            init.displayHeight || init.codedHeight;
+        /* 2. Let defaultRect be «[ "x:" → 0, "y" → 0, "width" →
+         *    init.codedWidth, "height" → init.codedWidth ]». */
+        const defaultRect = new DOMRect(0, 0, init.codedWidth, init.codedHeight);
 
-        // Account for non-square pixels
-        if (dWidth !== width ||
-            dHeight !== height) {
-            // Dubious (but correct) SAR calculation
-            this._nonSquarePixels = true;
-            this._sar_num = dWidth * height;
-            this._sar_den = dHeight * width;
-        } else {
-            this._nonSquarePixels = false;
+        // 3. Let overrideRect be undefined.
+        let overrideRect: DOMRect | undefined = void 0;
+
+        // 4. If init.visibleRect exists, assign its value to overrideRect.
+        if (init.visibleRect)
+            overrideRect = DOMRect.fromRect(init.visibleRect);
+
+        /* 5. Let parsedRect be the result of running the Parse Visible Rect
+         *    algorithm with defaultRect, overrideRect, init.codedWidth,
+         *    init.codedHeight, and init.format. */
+        // 6. If parsedRect is an exception, return parsedRect.
+        this.codedWidth = init.codedWidth; // (for _parseVisibleRect)
+        this.codedHeight = init.codedHeight;
+        const parsedRect = this._parseVisibleRect(defaultRect, overrideRect);
+
+        // 7. Let optLayout be undefined.
+        let optLayout: PlaneLayout[] | undefined = void 0;
+
+        // 8. If options.layout exists, assign its value to optLayout.
+        // NOTE: options.layout is presumably a typo
+        if (init.layout) {
+            if (init.layout instanceof Array)
+                optLayout = init.layout;
+            else
+                optLayout = Array.from(init.layout);
         }
 
-        this.timestamp = init.timestamp;
-        if (init.duration)
-            this.duration = init.duration;
+        /* 9. Let combinedLayout be the result of running the Compute Layout
+         *    and Allocation Size algorithm with parsedRect, init.format, and
+         *    optLayout. */
+        // 10. If combinedLayout is an exception, throw combinedLayout.
+        this.format = init.format; // (needed for _computeLayoutAndAllocationSize)
+        const combinedLayout = this._computeLayoutAndAllocationSize(
+            parsedRect, optLayout
+        );
 
+        /* 11. If data.byteLength is less than combinedLayout’s allocationSize,
+         *     throw a TypeError. */
+        if (data.byteLength < combinedLayout.allocationSize)
+            throw new TypeError("data is too small for layout");
+
+        /* 12. If init.transfer contains more than one reference to the same
+         *     ArrayBuffer, then throw a DataCloneError DOMException. */
+        // 13. For each transferable in init.transfer:
+            // 1. If [[Detached]] internal slot is true, then throw a DataCloneError DOMException.
+        // (not checked in polyfill)
+
+        /* 14. If init.transfer contains an ArrayBuffer referenced by data the
+         *     User Agent MAY choose to: */
+        let transfer = false;
+        if (init.transfer) {
+
+            /* 1. Let resource be a new media resource referencing pixel data
+             *    in data. */
+            let inBuffer: ArrayBuffer;
+            if ((<any> data).buffer)
+                inBuffer = (<any> data).buffer;
+            else
+                inBuffer = <ArrayBuffer> data;
+
+            let t: ArrayBuffer[];
+            if (init.transfer instanceof Array)
+                t = init.transfer;
+            else
+                t = Array.from(init.transfer);
+            for (const b of t) {
+                if (b === inBuffer) {
+                    transfer = true;
+                    break;
+                }
+            }
+        }
+
+        // 15. Otherwise:
+            /* 1. Let resource be a new media resource containing a copy of
+             *    data. Use visibleRect and layout to determine where in data
+             *    the pixels for each plane reside. */
+            /*    The User Agent MAY choose to allocate resource with a larger
+             *    coded size and plane strides to improve memory alignment.
+             *    Increases will be reflected by codedWidth and codedHeight.
+             *    Additionally, the User Agent MAY use visibleRect to copy only
+             *    the visible rectangle. It MAY also reposition the visible
+             *    rectangle within resource. The final position will be
+             *    reflected by visibleRect. */
+
+        /* NOTE: The spec seems to be missing the step where you actually use
+         * the resource to define the [[resource reference]]. */
+        const format = init.format;
         if (init.layout) {
             // FIXME: Make sure it's the right size
             if (init.layout instanceof Array)
@@ -113,9 +187,9 @@ export class VideoFrame {
             for (let i = 0; i < numPlanes_; i++) {
                 const sampleWidth = horizontalSubSamplingFactor(format, i);
                 const sampleHeight = verticalSubSamplingFactor(format, i);
-                const stride = ~~(width / sampleWidth);
+                const stride = ~~(this.codedWidth / sampleWidth);
                 layout.push({offset, stride});
-                offset += stride * (~~(height / sampleHeight));
+                offset += stride * (~~(this.codedHeight / sampleHeight));
             }
             this._layout = layout;
         }
@@ -124,6 +198,129 @@ export class VideoFrame {
             (<any> data).buffer || data,
             (<any> data).byteOffset || 0
         );
+        if (!transfer) {
+            const numPlanes_ = numPlanes(format);
+
+            // Only copy the relevant part
+            let layout = this._layout;
+            let lo = 1/0;
+            let hi = 0;
+            for (let i = 0; i < numPlanes_; i++) {
+                const plane = layout[i];
+                let offset = plane.offset;
+                if (offset < lo)
+                    lo = offset;
+
+                const sampleHeight = verticalSubSamplingFactor(format, i);
+                offset += plane.stride * (~~(this.codedHeight / sampleHeight));
+                if (offset > hi)
+                    hi = offset;
+            }
+
+            // Fix the layout to compensate
+            if (lo !== 0) {
+                layout = this._layout = layout.map(x => ({
+                    offset: x.offset - lo,
+                    stride: x.stride
+                }));
+            }
+            this._data = this._data.slice(lo, hi);
+        }
+
+        // 16. For each transferable in init.transfer:
+            // 1. Perform DetachArrayBuffer on transferable
+        // (not doable in polyfill)
+
+        // 17. Let resourceCodedWidth be the coded width of resource.
+        const resourceCodedWidth = init.codedWidth;
+
+        // 18. Let resourceCodedHeight be the coded height of resource.
+        const resourceCodedHeight = init.codedHeight;
+
+        /* 19. Let resourceVisibleLeft be the left offset for the visible
+         *     rectangle of resource. */
+        const resourceVisibleLeft = parsedRect.left;
+
+        /* 20. Let resourceVisibleTop be the top offset for the visible
+         *     rectangle of resource. */
+        const resourceVisibleTop = parsedRect.top;
+
+        // 21. Let frame be a new VideoFrame object initialized as follows:
+        {
+
+            /* 1. Assign resourceCodedWidth, resourceCodedHeight,
+             *    resourceVisibleLeft, and resourceVisibleTop to
+             *    [[coded width]], [[coded height]], [[visible left]], and
+             *    [[visible top]] respectively. */
+            // (codedWidth/codedHeight done earlier)
+            this.codedRect = new DOMRect(0, 0, resourceCodedWidth, resourceCodedHeight);
+            this.visibleRect = parsedRect;
+
+            // 2. If init.visibleRect exists:
+            if (init.visibleRect) {
+
+                // 1. Let truncatedVisibleWidth be the value of visibleRect.width after truncating.
+                // 2. Assign truncatedVisibleWidth to [[visible width]].
+                // 3. Let truncatedVisibleHeight be the value of visibleRect.height after truncating.
+                // 4. Assign truncatedVisibleHeight to [[visible height]].
+                this.visibleRect = DOMRect.fromRect(init.visibleRect);
+
+            // 3. Otherwise:
+            } else {
+
+                // 1. Assign [[coded width]] to [[visible width]].
+                // 2. Assign [[coded height]] to [[visible height]].
+                this.visibleRect = new DOMRect(0, 0, resourceCodedWidth, resourceCodedHeight);
+
+            }
+
+            /* 4. If init.displayWidth exists, assign it to [[display width]].
+             *    Otherwise, assign [[visible width]] to [[display width]]. */
+            if ("displayWidth" in init)
+                this.displayWidth = init.displayWidth;
+            else
+                this.displayWidth = this.visibleRect.width;
+
+            /* 5. If init.displayHeight exists, assign it to [[display height]].
+             *    Otherwise, assign [[visible height]] to [[display height]]. */
+            if ("displayHeight" in init)
+                this.displayHeight = init.displayHeight;
+            else
+                this.displayHeight = init.displayHeight;
+
+            // Account for non-square pixels
+            if (this.displayWidth !== this.visibleRect.width ||
+                this.displayHeight !== this.visibleRect.height) {
+                // Dubious (but correct) SAR calculation
+                this._nonSquarePixels = true;
+                this._sar_num = this.displayWidth * this.visibleRect.width;
+                this._sar_den = this.displayHeight * this.visibleRect.height;
+            } else {
+                this._nonSquarePixels = false;
+            }
+
+            /* 6. Assign init’s timestamp and duration to [[timestamp]] and
+             *    [[duration]] respectively. */
+            this.timestamp = init.timestamp;
+            this.duration = init.duration;
+
+            // 7. Let colorSpace be undefined.
+            // 8. If init.colorSpace exists, assign its value to colorSpace.
+            // (color spaces not supported)
+
+            // 9. Assign init’s format to [[format]].
+            // (done earlier)
+
+            /* 10. Assign the result of running the Pick Color Space algorithm,
+             *     with colorSpace and [[format]], to [[color space]]. */
+            // (color spaces not supported)
+
+            /* 11. Assign the result of calling Copy VideoFrame metadata with
+             *     init’s metadata to frame.[[metadata]]. */
+            // (no actual metadata is yet described by the spec)
+        }
+
+        // 22. Return frame.
     }
 
     /* NOTE: These should all be readonly, but the constructor style above
@@ -154,6 +351,54 @@ export class VideoFrame {
 
     // Internal
     _libavGetData() { return this._data; }
+
+    private static _checkValidVideoFrameBufferInit(
+        init: VideoFrameBufferInit
+    ) {
+        // 1. If codedWidth = 0 or codedHeight = 0,return false.
+        if (!init.codedWidth || !init.codedHeight)
+            throw new TypeError("Invalid coded dimensions");
+
+        if (init.visibleRect) {
+        /* 2. If any attribute of visibleRect is negative or not finite, return
+         *    false. */
+            const vr = init.visibleRect;
+            if (vr.x < 0 || !Number.isFinite(vr.x) ||
+                vr.y < 0 || !Number.isFinite(vr.y) ||
+                vr.width < 0 || !Number.isFinite(vr.width) ||
+                vr.height < 0 || !Number.isFinite(vr.height)) {
+                throw new TypeError("Invalid visible rectangle");
+            }
+
+        // 3. If visibleRect.y + visibleRect.height > codedHeight, return false.
+            if (vr.y + vr.height > init.codedHeight)
+                throw new TypeError("Visible rectangle outside of coded height");
+
+        // 4. If visibleRect.x + visibleRect.width > codedWidth, return false.
+            if (vr.x + vr.width > init.codedWidth)
+                throw new TypeError("Visible rectangle outside of coded width");
+
+        // 5. If only one of displayWidth or displayHeight exists, return false.
+        // 6. If displayWidth = 0 or displayHeight = 0, return false.
+            if ((init.displayWidth && !init.displayHeight) ||
+                (!init.displayWidth && !init.displayHeight) ||
+                (init.displayWidth === 0 || init.displayHeight === 0))
+                throw new TypeError("Invalid display dimensions");
+        }
+
+        // 7. Return true.
+    }
+
+    metadata(): any {
+        // 1. If [[Detached]] is true, throw an InvalidStateError DOMException.
+        if (this._data === null)
+            throw new DOMException("Detached", "InvalidStateError");
+
+        /* 2. Return the result of calling Copy VideoFrame metadata with
+         *    [[metadata]]. */
+        // No actual metadata is yet defined in the spec
+        return null;
+    }
 
     allocationSize(options: VideoFrameCopyToOptions = {}): number {
         // 1. If [[Detached]] is true, throw an InvalidStateError DOMException.
@@ -189,7 +434,9 @@ export class VideoFrame {
          * algorithm with defaultRect, overrideRect, [[coded width]], [[coded
          * height]], and [[format]]. */
         // 5. If parsedRect is an exception, return parsedRect.
-        const parsedRect = this._parseVisibleRect(defaultRect, overrideRect);
+        const parsedRect = this._parseVisibleRect(
+            defaultRect, overrideRect
+        );
 
         // 6. Let optLayout be undefined.
         // 7. If options.layout exists, assign its value to optLayout.
@@ -204,8 +451,9 @@ export class VideoFrame {
         /* 8. Let combinedLayout be the result of running the Compute Layout
          * and Allocation Size algorithm with parsedRect, [[format]], and
          * optLayout. */
-        const combinedLayout = this._computeLayoutAndAllocationSize(parsedRect,
-            optLayout);
+        const combinedLayout = this._computeLayoutAndAllocationSize(
+            parsedRect, optLayout
+        );
 
         // 9. Return combinedLayout.
         return combinedLayout;
@@ -238,9 +486,9 @@ export class VideoFrame {
             sourceRect = overrideRect;
         }
 
-        /* 3. Let validAlignment be the result of running the Verify Rect
-         * Sample Alignment algorithm with format and sourceRect. */
-        const validAlignment = this._verifyRectSampleAlignment(sourceRect);
+        /* 3. Let validAlignment be the result of running the Verify Rect Offset
+         *    Alignment algorithm with format and sourceRect. */
+        const validAlignment = this._verifyRectOffsetAlignment(sourceRect);
 
         // 4. If validAlignment is false, throw a TypeError.
         if (!validAlignment)
@@ -289,36 +537,34 @@ export class VideoFrame {
              * subsample for plane. */
             const sampleHeight = verticalSubSamplingFactor(this.format, planeIndex);
 
-            /* 5. Let sampleWidthBytes be the product of multiplying
-             * sampleWidth by sampleBytes. */
-            const sampleWidthBytes = sampleWidth * sampleBytes_;
-
-            // 6. Let computedLayout be a new computed plane layout.
+            // 5. Let computedLayout be a new computed plane layout.
             const computedLayout: ComputedPlaneLayout = {
                 destinationOffset: 0,
                 destinationStride: 0,
 
-                /* 7. Set computedLayout’s sourceTop to the result of the
-                 * integer division of truncated parsedRect.y by sampleHeight. */
-                sourceTop: ~~(parsedRect.y / sampleHeight),
 
-                /* 8. Set computedLayout’s sourceHeight to the result of the
-                 * integer division of truncated parsedRect.height by
-                 * sampleHeight */
-                sourceHeight: ~~(parsedRect.height / sampleHeight),
+            /* 6. Set computedLayout’s sourceTop to the result of the division
+             *    of truncated parsedRect.y by sampleHeight, rounded up to the
+             *    nearest integer. */
+                sourceTop: Math.ceil(~~parsedRect.y / sampleHeight),
 
-                /* 9. Set computedLayout’s sourceLeftBytes to the result of the
-                 * integer division of truncated parsedRect.x by
-                 * sampleWidthBytes. */
-                sourceLeftBytes: ~~(parsedRect.x / sampleWidthBytes),
+            /* 7. Set computedLayout’s sourceHeight to the result of the
+             *    division of truncated parsedRect.height by sampleHeight,
+             *    rounded up to the nearest integer. */
+                sourceHeight: Math.ceil(~~parsedRect.height / sampleHeight),
 
-                /* 10. Set computedLayout’s sourceWidthBytes to the result of
-                 * the integer division of truncated parsedRect.width by
-                 * sampleWidthBytes. */
-                sourceWidthBytes: ~~(parsedRect.width / sampleWidthBytes)
+            /* 8. Set computedLayout’s sourceLeftBytes to the result of the
+             *    integer division of truncated parsedRect.x by sampleWidth,
+             *    multiplied by sampleBytes. */
+                sourceLeftBytes: ~~(parsedRect.x / sampleWidth * sampleBytes_),
+
+            /* 9. Set computedLayout’s sourceWidthBytes to the result of the
+             *    integer division of truncated parsedRect.width by
+             *    sampleHeight, multiplied by sampleBytes. */
+                sourceWidthBytes: ~~(parsedRect.width / sampleWidth * sampleBytes_)
             };
 
-            // 11. If layout is not undefined:
+            // 10. If layout is not undefined:
             if (layout) {
                 /* 1. Let planeLayout be the PlaneLayout in layout at position
                  * planeIndex. */
@@ -337,7 +583,7 @@ export class VideoFrame {
                  * destinationStride. */
                 computedLayout.destinationStride = planeLayout.stride;
 
-            // 12. Otherwise:
+            // 11. Otherwise:
             } else {
                 /* 1. Assign minAllocationSize to computedLayout’s
                  * destinationOffset. */
@@ -348,33 +594,33 @@ export class VideoFrame {
                 computedLayout.destinationStride = computedLayout.sourceWidthBytes;
             }
 
-            /* 13. Let planeSize be the product of multiplying computedLayout’s
+            /* 12. Let planeSize be the product of multiplying computedLayout’s
              * destinationStride and sourceHeight. */
             const planeSize =
                 computedLayout.destinationStride * computedLayout.sourceHeight;
 
-            /* 14. Let planeEnd be the sum of planeSize and computedLayout’s
+            /* 13. Let planeEnd be the sum of planeSize and computedLayout’s
              * destinationOffset. */
             const planeEnd = planeSize + computedLayout.destinationOffset;
 
-            /* 15. If planeSize or planeEnd is greater than maximum range of
+            /* 14. If planeSize or planeEnd is greater than maximum range of
              * unsigned long, return a TypeError. */
             if (planeSize >= 0x100000000 ||
                 planeEnd >= 0x100000000)
                 throw new TypeError("Plane too large");
 
-            // 16. Append planeEnd to endOffsets.
+            // 15. Append planeEnd to endOffsets.
             endOffsets.push(planeEnd);
 
-            /* 17. Assign the maximum of minAllocationSize and planeEnd to
+            /* 16. Assign the maximum of minAllocationSize and planeEnd to
              * minAllocationSize. */
             if (planeEnd > minAllocationSize)
                 minAllocationSize = planeEnd;
 
-            // 18. Let earlierPlaneIndex be 0.
+            // 17. Let earlierPlaneIndex be 0.
             let earlierPlaneIndex = 0;
 
-            // 19. While earlierPlaneIndex is less than planeIndex.
+            // 18. While earlierPlaneIndex is less than planeIndex.
             while (earlierPlaneIndex < planeIndex) {
                 // 1. Let earlierLayout be computedLayouts[earlierPlaneIndex].
                 const earlierLayout = computedLayouts[earlierPlaneIndex];
@@ -394,10 +640,10 @@ export class VideoFrame {
                 earlierPlaneIndex++;
             }
 
-            // 20. Append computedLayout to computedLayouts.
+            // 19. Append computedLayout to computedLayouts.
             computedLayouts.push(computedLayout);
 
-            // 21. Increment planeIndex by 1.
+            // 20. Increment planeIndex by 1.
             planeIndex++;
         }
 
@@ -415,7 +661,7 @@ export class VideoFrame {
         return combinedLayout;
     }
 
-    private _verifyRectSampleAlignment(rect: DOMRectReadOnly) {
+    private _verifyRectOffsetAlignment(rect: DOMRectReadOnly) {
         // 1. If format is null, return true.
         if (!this.format)
             return true;
@@ -439,22 +685,14 @@ export class VideoFrame {
              * subsample for plane. */
             const sampleHeight = verticalSubSamplingFactor(this.format, planeIndex);
 
-            /* 4. If rect.x and rect.width are not both multiples of
-             * sampleWidth, return false. */
+            // 4. If rect.x is not a multiple of sampleWidth, return false.
             const xw = rect.x / sampleWidth;
             if (xw !== ~~xw)
                 return false;
-            const ww = rect.width / sampleWidth;
-            if (ww !== ~~ww)
-                return false;
 
-            /* 5. If rect.y and rect.height are not both multiples of
-             * sampleHeight, return false. */
+            // 5. If rect.y is not a multiple of sampleHeight, return false.
             const yh = rect.y / sampleHeight;
             if (yh !== ~~yh)
-                return false;
-            const hh = rect.height / sampleHeight;
-            if (hh !== ~~hh)
                 return false;
 
             // 6. Increment planeIndex by 1.
@@ -495,77 +733,90 @@ export class VideoFrame {
         // 6. Let p be a new Promise.
         /* 7. Let copyStepsQueue be the result of starting a new parallel
          * queue. */
-        // 8. Enqueue the following steps to copyStepsQueue:
-        // NOTE: This is an async function anyway, so we can just do these.
-        let ret: PlaneLayout[] = [];
+        // 8. Let planeLayouts be a new list.
+        let planeLayouts: PlaneLayout[] = [];
 
-        /* 1. Let resource be the media resource referenced by [[resource
-         * reference]]. */
+        // 9. Enqueue the following steps to copyStepsQueue:
+        {
 
-        // 2. Let numPlanes be the number of planes as defined by [[format]].
-        const numPlanes_ = numPlanes(this.format);
+            /* 1. Let resource be the media resource referenced by [[resource
+             * reference]]. */
 
-        // 3. Let planeIndex be 0.
-        let planeIndex = 0;
+            /* 2. Let numPlanes be the number of planes as defined by
+             *    [[format]]. */
+            const numPlanes_ = numPlanes(this.format);
 
-        // 4. While planeIndex is less than combinedLayout’s numPlanes:
-        while (planeIndex < combinedLayout.computedLayouts.length) {
-            /* 1. Let sourceStride be the stride of the plane in resource as
-             * identified by planeIndex. */
-            const sourceStride = this._layout[planeIndex].stride;
+            // 3. Let planeIndex be 0.
+            let planeIndex = 0;
 
-            /* 2. Let computedLayout be the computed plane layout in
-             * combinedLayout’s computedLayouts at the position of planeIndex */
-            const computedLayout = combinedLayout.computedLayouts[planeIndex];
+            // 4. While planeIndex is less than combinedLayout’s numPlanes:
+            while (planeIndex < combinedLayout.computedLayouts.length) {
 
-            /* 3. Let sourceOffset be the product of multiplying
-             * computedLayout’s sourceTop by sourceStride */
-            let sourceOffset =
-                computedLayout.sourceTop * sourceStride;
+                /* 1. Let sourceStride be the stride of the plane in resource as
+                 * identified by planeIndex. */
+                const sourceStride = this._layout[planeIndex].stride;
 
-            // 4. Add computedLayout’s sourceLeftBytes to sourceOffset.
-            sourceOffset += computedLayout.sourceLeftBytes;
+                /* 2. Let computedLayout be the computed plane layout in
+                 * combinedLayout’s computedLayouts at the position of planeIndex */
+                const computedLayout = combinedLayout.computedLayouts[planeIndex];
 
-            // 5. Let destinationOffset be computedLayout’s destinationOffset.
-            let destinationOffset = computedLayout.destinationOffset;
+                /* 3. Let sourceOffset be the product of multiplying
+                 * computedLayout’s sourceTop by sourceStride */
+                let sourceOffset =
+                    computedLayout.sourceTop * sourceStride;
 
-            // 6. Let rowBytes be computedLayout’s sourceWidthBytes.
-            const rowBytes = computedLayout.sourceWidthBytes;
+                // 4. Add computedLayout’s sourceLeftBytes to sourceOffset.
+                sourceOffset += computedLayout.sourceLeftBytes;
 
-            // 7. Let row be 0.
-            let row = 0;
+                // 5. Let destinationOffset be computedLayout’s destinationOffset.
+                let destinationOffset = computedLayout.destinationOffset;
 
-            // 8. While row is less than computedLayout’s sourceHeight:
-            while (row < computedLayout.sourceHeight) {
-                /* 1. Copy rowBytes bytes from resource starting at
-                 * sourceOffset to destination starting at destinationOffset. */
-                destBuf.set(
-                    this._data.subarray(sourceOffset, sourceOffset + rowBytes),
-                    destinationOffset
-                );
+                // 6. Let rowBytes be computedLayout’s sourceWidthBytes.
+                const rowBytes = computedLayout.sourceWidthBytes;
 
-                // 2. Increment sourceOffset by sourceStride.
-                sourceOffset += sourceStride;
+                /* 7. Let layout be a new PlaneLayout, with offset set to
+                 *    destinationOffset and stride set to rowBytes. */
+                const layout = {
+                    offset: computedLayout.destinationOffset,
+                    stride: computedLayout.destinationStride
+                };
 
-                /* 3. Increment destinationOffset by computedLayout’s
-                 * destinationStride. */
-                destinationOffset += computedLayout.destinationStride;
+                // 8. Let row be 0.
+                let row = 0;
 
-                // 4. Increment row by 1.
-                row++;
+                // 9. While row is less than computedLayout’s sourceHeight:
+                while (row < computedLayout.sourceHeight) {
+
+                    /* 1. Copy rowBytes bytes from resource starting at
+                     * sourceOffset to destination starting at destinationOffset. */
+                    destBuf.set(
+                        this._data.subarray(sourceOffset, sourceOffset + rowBytes),
+                        destinationOffset
+                    );
+
+                    // 2. Increment sourceOffset by sourceStride.
+                    sourceOffset += sourceStride;
+
+                    /* 3. Increment destinationOffset by computedLayout’s
+                     * destinationStride. */
+                    destinationOffset += computedLayout.destinationStride;
+
+                    // 4. Increment row by 1.
+                    row++;
+                }
+
+                // 10. Increment planeIndex by 1.
+                planeIndex++;
+
+                // 11. Append layout to planeLayouts.
+                planeLayouts.push(layout);
             }
 
-            // 9. Increment planeIndex by 1.
-            planeIndex++;
-            ret.push({
-                offset: computedLayout.destinationOffset,
-                stride: computedLayout.destinationStride
-            });
+            // 5. Queue a task to resolve p with planeLayouts.
         }
 
-        // 5. Queue a task on the control thread event loop to resolve p.
-        // 6. Return p.
-        return ret;
+        // 10. Return p.
+        return planeLayouts;
     }
 
     clone(): VideoFrame {
@@ -597,6 +848,9 @@ export interface VideoFrameInit {
     // Default matches image unless visibleRect is provided.
     displayWidth?: number;
     displayHeight?: number;
+
+    // Not actually used in spec
+    metadata?: any;
 }
 
 export interface VideoFrameBufferInit {
@@ -618,6 +872,11 @@ export interface VideoFrameBufferInit {
 
     // FIXME: Not used
     colorSpace?: VideoColorSpaceInit;
+
+    transfer?: ArrayLike<ArrayBuffer>;
+
+    // FIXME: Missing from spec
+    metadata?: any;
 }
 
 export type VideoPixelFormat =
