@@ -59,11 +59,11 @@ async function sampleMux(filename, codec, packets, extradata) {
     for (const packet of packets) {
         const ab = new ArrayBuffer(packet.byteLength);
         packet.copyTo(ab);
-        const pts = ~~(packet.timestamp / 1000);
+        const pts = LibAV.f64toi64(Math.floor(packet.timestamp / 1000));
         libavPackets.push({
             data: new Uint8Array(ab),
-            pts, ptshi: 0,
-            dts: pts, dtshi: 0,
+            pts: pts[0], ptshi: pts[1],
+            dts: pts[0], dtshi: pts[1],
             flags: (packet.type === "key") ? 1 : 0
         });
     }
