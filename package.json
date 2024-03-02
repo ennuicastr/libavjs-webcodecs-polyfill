@@ -2,12 +2,11 @@
   "name": "libavjs-webcodecs-polyfill",
   "version": "0.4.5",
   "description": "A WebCodecs polyfill (ponyfill, really), using libav.js",
-  "main": "dist/libavjs-webcodecs-polyfill.cjs",
+  "main": "dist/libavjs-webcodecs-polyfill.js",
   "types": "src/main.ts",
   "exports": {
-    "browser": "./dist/libavjs-webcodecs-polyfill.js",
     "import": "./dist/libavjs-webcodecs-polyfill.mjs",
-    "default": "./dist/libavjs-webcodecs-polyfill.cjs"
+    "default": "./dist/libavjs-webcodecs-polyfill.js"
   },
   "scripts": {
     "build": "tsc && rollup -c",

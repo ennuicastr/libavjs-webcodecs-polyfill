@@ -7,19 +7,12 @@ export default {
     output: [
         {
             file: "dist/libavjs-webcodecs-polyfill.js",
-            format: "iife",
+            format: "umd",
             name: "LibAVWebCodecs"
         }, {
             file: "dist/libavjs-webcodecs-polyfill.min.js",
-            format: "iife",
+            format: "umd",
             name: "LibAVWebCodecs"
-        }, {
-            file: "dist/libavjs-webcodecs-polyfill.cjs",
-            format: "cjs"
-        }, {
-            file: "dist/libavjs-webcodecs-polyfill.min.cjs",
-            format: "cjs",
-            plugins: [terser()]
         }, {
             file: "dist/libavjs-webcodecs-polyfill.mjs",
             format: "es"
