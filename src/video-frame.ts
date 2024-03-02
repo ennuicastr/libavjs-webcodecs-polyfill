@@ -104,8 +104,7 @@ export class VideoFrame {
         // 7. Let optLayout be undefined.
         let optLayout: PlaneLayout[] | undefined = void 0;
 
-        // 8. If options.layout exists, assign its value to optLayout.
-        // NOTE: options.layout is presumably a typo
+        // 8. If init.layout exists, assign its value to optLayout.
         if (init.layout) {
             if (init.layout instanceof Array)
                 optLayout = init.layout;
