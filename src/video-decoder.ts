@@ -292,8 +292,16 @@ export class VideoDecoder extends et.DequeueEventTarget {
                     format = "RGBA";
                     break;
 
+                case 0x77: // AV_PIX_FMT_RGB0
+                    format = "RGBX";
+                    break;
+
                 case libav.AV_PIX_FMT_BGRA:
                     format = "BGRA";
+                    break;
+
+                case 0x79: // AV_PIX_FMT_BGR0
+                    format = "BGRX";
                     break;
 
                 default:

@@ -289,13 +289,19 @@ export class VideoEncoder extends et.DequeueEventTarget {
                         break;
 
                     case "RGBA":
-                    case "RGBX":
                         format = libav.AV_PIX_FMT_RGBA;
                         break;
 
+                    case "RGBX":
+                        format = 0x77; // AV_PIX_FMT_RGB0
+                        break;
+
                     case "BGRA":
-                    case "BGRX":
                         format = libav.AV_PIX_FMT_BGRA;
+                        break;
+
+                    case "BGRX":
+                        format = 0x79; // AV_PIX_FMT_BGR0
                         break;
 
                     default:

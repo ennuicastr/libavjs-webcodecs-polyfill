@@ -145,13 +145,19 @@ export function canvasDrawImage(
             break;
 
         case "RGBA":
-        case "RGBX":
             format = scalerSync.AV_PIX_FMT_RGBA;
             break;
 
+        case "RGBX":
+            format = 0x77; // AV_PIX_FMT_RGB0
+            break;
+
         case "BGRA":
-        case "BGRX":
             format = scalerSync.AV_PIX_FMT_BGRA;
+            break;
+
+        case "BGRX":
+            format = 0x79; // AV_PIX_FMT_BGR0
             break;
     }
 
@@ -273,13 +279,19 @@ export function createImageBitmap(
             break;
 
         case "RGBA":
-        case "RGBX":
             format = scalerAsync.AV_PIX_FMT_RGBA;
             break;
 
+        case "RGBX":
+            format = 0x77; // AV_PIX_FMT_RGB0
+            break;
+
         case "BGRA":
-        case "BGRX":
             format = scalerAsync.AV_PIX_FMT_BGRA;
+            break;
+
+        case "BGRX":
+            format = 0x79; // AV_PIX_FMT_BGR0
             break;
     }
 
