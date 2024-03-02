@@ -58,15 +58,15 @@ export async function load(options: {
             libavOptions.noworker = true;
 
             // Load libav
-            const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-open-media@4.10.6/dist";
+            const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-webm-vp9@5.1.6/dist";
             globalThis.LibAV = {base: libavBase};
-            const libavVar = "libav-4.10.6.1.1-open-media.js";
+            const libavVar = "libav-5.1.6.1.1-webm-vp9.js";
             if (typeof importScripts !== "undefined") {
                 importScripts(`${libavBase}/${libavVar}`);
                 res(void 0);
             } else {
                 const scr = document.createElement("script");
-                scr.src = "https://cdn.jsdelivr.net/npm/@libav.js/variant-open-media@4.10.6/dist/libav-4.10.6.1.1-open-media.js";
+                scr.src = `${libavBase}/${libavVar}`;
                 scr.onload = res;
                 scr.onerror = rej;
                 document.body.appendChild(scr);

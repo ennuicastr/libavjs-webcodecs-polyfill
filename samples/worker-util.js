@@ -31,7 +31,7 @@ if (typeof importScripts !== "undefined") {
         LibAV = {
             base: "../../node_modules/@libav.js/variant-webm-vp9/dist"
         };
-        importScripts(LibAV.base + "/libav-5.0.6.1.1-all.js");
+        importScripts(LibAV.base + "/libav-5.1.6.1.1-webm-vp9.js");
     }
     importScripts("../../dist/libavjs-webcodecs-polyfill.js");
 }
