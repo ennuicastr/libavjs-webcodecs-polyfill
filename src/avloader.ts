@@ -17,7 +17,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-import type * as LibAVJS from "libav.js";
+import type * as LibAVJS from "@libav.js/variant-webm-vp9";
 declare let LibAV: LibAVJS.LibAVWrapper;
 
 // Wrapper function to use

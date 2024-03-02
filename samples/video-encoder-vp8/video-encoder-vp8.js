@@ -90,6 +90,7 @@ importScripts("../worker-util.js");
          * WebCodecs can't use our VideoData. Do not use it in production code. */
         for (const frame of frames) {
             encoder.encode(new VideoFrame(frame._libavGetData(), {
+                layout: frame._libavGetLayout(),
                 format: frame.format,
                 codedWidth: frame.codedWidth,
                 codedHeight: frame.codedHeight,

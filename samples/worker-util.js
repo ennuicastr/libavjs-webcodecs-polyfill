@@ -29,9 +29,9 @@ if (typeof importScripts !== "undefined") {
         console.log("NOTE: worker-util.js will load libav.js assuming it's installed via node. If it's not, this demo will not work.");
 
         LibAV = {
-            base: url.pathname.replace(/\/[^\/]*$/, "/../../node_modules/libav.js/dist")
+            base: "../../node_modules/@libav.js/variant-webm-vp9/dist"
         };
-        importScripts(LibAV.base + "/libav-4.10.6.1.1-open-media.js");
+        importScripts(LibAV.base + "/libav-5.0.6.1.1-all.js");
     }
     importScripts("../../dist/libavjs-webcodecs-polyfill.js");
 }
@@ -49,7 +49,7 @@ async function sampleDemux(filename, suffix) {
         }
     }
     const pkt = await libav.av_packet_alloc();
-    const [, packets] = await libav.ff_read_multi(fmt_ctx, pkt);
+    const [, packets] = await libav.ff_read_frame_multi(fmt_ctx, pkt);
     libav.terminate();
     return [streams, packets];
 }

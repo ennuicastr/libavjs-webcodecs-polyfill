@@ -351,6 +351,7 @@ export class VideoFrame {
 
     // Internal
     _libavGetData() { return this._data; }
+    _libavGetLayout() { return this._layout; }
 
     private static _checkValidVideoFrameBufferInit(
         init: VideoFrameBufferInit
@@ -826,7 +827,8 @@ export class VideoFrame {
             codedHeight: this.codedHeight,
             timestamp: this.timestamp,
             duration: this.duration,
-            layout: this._layout
+            layout: this._layout,
+            transfer: [this._data.buffer]
         });
     }
 

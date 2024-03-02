@@ -24,7 +24,7 @@ import * as misc from "./misc";
 import * as vd from "./video-decoder";
 import * as vf from "./video-frame";
 
-import type * as LibAVJS from "libav.js";
+import type * as LibAVJS from "@libav.js/variant-webm-vp9";
 
 export class VideoEncoder extends et.DequeueEventTarget {
     constructor(init: VideoEncoderInit) {
@@ -304,24 +304,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
 
                 // Convert the data
                 const rawU8 = frameClone._libavGetData();
-                let rawIdx = 0;
-                const raw: Uint8Array[][] = [];
-                const planes = vf.numPlanes(frameClone.format);
-                for (let p = 0; p < planes; p++) {
-                    const plane: Uint8Array[] = [];
-                    raw.push(plane);
-                    const sb = vf.sampleBytes(frameClone.format, p);
-                    const hssf =
-                        vf.horizontalSubSamplingFactor(frameClone.format, p);
-                    const vssf =
-                        vf.verticalSubSamplingFactor(frameClone.format, p);
-                    const w = ~~(frameClone.codedWidth * sb / hssf);
-                    const h = ~~(frameClone.codedHeight / vssf);
-                    for (let y = 0; y < h; y++) {
-                        plane.push(rawU8.subarray(rawIdx, rawIdx + w));
-                        rawIdx += w;
-                    }
-                }
+                const layout = frameClone._libavGetLayout();
 
                 // Convert the timestamp
                 const ptsFull = Math.floor(frameClone.timestamp / 1000);
@@ -335,7 +318,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
 
                 // Make the frame
                 const frame: LibAVJS.Frame = {
-                    data: raw,
+                    data: rawU8, layout,
                     format, pts, ptshi,
                     width: frameClone.codedWidth,
                     height: frameClone.codedHeight,

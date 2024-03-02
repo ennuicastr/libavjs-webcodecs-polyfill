@@ -33,7 +33,7 @@ import * as config from "./config";
 import * as libav from "./avloader";
 import * as misc from "./misc";
 
-import type * as LibAVJS from "libav.js";
+import type * as LibAVJS from "@libav.js/variant-webm-vp9";
 import '@ungap/global-this';
 
 declare let importScripts: any;

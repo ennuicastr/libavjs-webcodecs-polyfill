@@ -17,7 +17,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-import * as LibAVJS from "libav.js";
+import * as LibAVJS from "@libav.js/variant-webm-vp9";
 
 export type CodecState =
     "unconfigured" |

@@ -23,7 +23,7 @@ import * as libavs from "./avloader";
 import * as misc from "./misc";
 import * as vf from "./video-frame";
 
-import * as LibAVJS from "libav.js";
+import * as LibAVJS from "@libav.js/variant-webm-vp9";
 
 export class VideoDecoder extends et.DequeueEventTarget {
     constructor(init: VideoDecoderInit) {
@@ -329,36 +329,8 @@ export class VideoDecoder extends et.DequeueEventTarget {
                 timestamp = frame.ptshi * 0x100000000 + frame.pts;
             timestamp *= 1000;
 
-            // 4. data
-            let raw: Uint8Array;
-            {
-                let size = 0;
-                const planes = vf.numPlanes(format);
-                const sbs = [];
-                const hssfs = [];
-                const vssfs = [];
-                for (let i = 0; i < planes; i++) {
-                    sbs.push(vf.sampleBytes(format, i));
-                    hssfs.push(vf.horizontalSubSamplingFactor(format, i));
-                    vssfs.push(vf.verticalSubSamplingFactor(format, i));
-                }
-                for (let i = 0; i < planes; i++) {
-                    size += frame.width * frame.height * sbs[i] / hssfs[i]
-                        / vssfs[i];
-                }
-                raw = new Uint8Array(size);
-                let off = 0;
-                for (let i = 0; i < planes; i++) {
-                    const fd = frame.data[i];
-                    for (let j = 0; j < frame.height / vssfs[i]; j++) {
-                        const part = fd[j].subarray(0, frame.width / hssfs[i]);
-                        raw.set(part, off);
-                        off += part.length;
-                    }
-                }
-            }
-
-            const data = new vf.VideoFrame(raw, {
+            const data = new vf.VideoFrame(frame.data, {
+                layout: frame.layout,
                 format, codedWidth, codedHeight, displayWidth, displayHeight,
                 timestamp
             });

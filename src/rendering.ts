@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021 Yahweasel
+ * Copyright (c) 2021-2024 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -21,7 +21,7 @@ import * as libav from "./avloader";
 import * as vf from "./video-frame";
 import '@ungap/global-this';
 
-import type * as LibAVJS from "libav.js";
+import type * as LibAVJS from "@libav.js/variant-webm-vp9";
 
 /* A non-threaded libav.js instance for scaling. This is an any because the
  * type definitions only expose the async versions, but this API requires the
@@ -164,30 +164,21 @@ export function canvasDrawImage(
     const inFrame = scalerSync.av_frame_alloc_sync();
     const outFrame = scalerSync.av_frame_alloc_sync();
 
-    // Convert the data (FIXME: duplication)
-    const rawU8 = image._libavGetData ? image._libavGetData() : (<any> image)._data;
-    let rawIdx = 0;
-    const raw: Uint8Array[][] = [];
-    const planes = vf.numPlanes(image.format);
-    for (let p = 0; p < planes; p++) {
-        const plane: Uint8Array[] = [];
-        raw.push(plane);
-        const sb = vf.sampleBytes(image.format, p);
-        const hssf =
-            vf.horizontalSubSamplingFactor(image.format, p);
-        const vssf =
-            vf.verticalSubSamplingFactor(image.format, p);
-        const w = ~~(image.codedWidth * sb / hssf);
-        const h = ~~(image.codedHeight / vssf);
-        for (let y = 0; y < h; y++) {
-            plane.push(rawU8.subarray(rawIdx, rawIdx + w));
-            rawIdx += w;
-        }
+    let rawU8: Uint8Array;
+    let layout: vf.PlaneLayout[];
+    if (image._libavGetData) {
+        rawU8 = image._libavGetData();
+        layout = image._libavGetLayout();
+    } else {
+        // Just have to hope this is a polyfill VideoFrame copied weirdly!
+        rawU8 = (<any> image)._data;
+        layout = (<any> image)._layout;
     }
 
     // Copy it in
     scalerSync.ff_copyin_frame_sync(inFrame, {
-        data: raw,
+        data: rawU8,
+        layout,
         format,
         width: image.codedWidth,
         height: image.codedHeight
@@ -309,30 +300,25 @@ export function createImageBitmap(
            scalerAsync.av_frame_alloc()
        ]);
 
-       // Convert the data (FIXME: duplication)
-       const rawU8 = image._libavGetData ? image._libavGetData() : (<any> image)._data;
-       let rawIdx = 0;
-       const raw: Uint8Array[][] = [];
-       const planes = vf.numPlanes(image.format);
-       for (let p = 0; p < planes; p++) {
-           const plane: Uint8Array[] = [];
-           raw.push(plane);
-           const sb = vf.sampleBytes(image.format, p);
-           const hssf =
-               vf.horizontalSubSamplingFactor(image.format, p);
-           const vssf =
-               vf.verticalSubSamplingFactor(image.format, p);
-           const w = ~~(image.codedWidth * sb / hssf);
-           const h = ~~(image.codedHeight / vssf);
-           for (let y = 0; y < h; y++) {
-               plane.push(rawU8.subarray(rawIdx, rawIdx + w));
-               rawIdx += w;
-           }
+       // Convert the data
+       let rawU8: Uint8Array;
+       let layout: vf.PlaneLayout[] | undefined = void 0;
+       if (image._libavGetData) {
+           rawU8 = image._libavGetData();
+           layout = image._libavGetLayout();
+       } else if ((<any> image)._data) {
+           // Assume a VideoFrame weirdly serialized
+           rawU8 = (<any> image)._data;
+           layout = (<any> image)._layout;
+       } else {
+           rawU8 = new Uint8Array(image.allocationSize());
+           await image.copyTo(rawU8);
        }
 
        // Copy it in
        await scalerAsync.ff_copyin_frame(inFrame, {
-           data: raw,
+           data: rawU8,
+           layout,
            format,
            width: image.codedWidth,
            height: image.codedHeight
