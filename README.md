@@ -70,9 +70,9 @@ LibAVJS-WebCodecs-Polyfill, then `drawImage` itself will also support
 
 ## Compatibility
 
-LibAVJS-WebCodecs-Polyfill should be up to date with the 2023-02-09 working
+LibAVJS-WebCodecs-Polyfill should be up to date with the 2024-02-08 working
 draft of the WebCodecs specification:
-https://www.w3.org/TR/2023/WD-webcodecs-20230209/
+https://www.w3.org/TR/2024/WD-webcodecs-20240208/
 
 Depending on the libav.js version used, LibAVJS-WebCodecs-Polyfill supports the
 audio codecs FLAC (`"flac"`), Opus (`"opus"`), and Vorbis (`"vorbis"`), and the
