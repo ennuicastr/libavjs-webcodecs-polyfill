@@ -218,13 +218,7 @@ export class VideoDecoder extends et.DequeueEventTarget {
             try {
                 // Convert to a libav packet
                 const ptsFull = Math.floor(chunk.timestamp / 1000);
-                let pts: number, ptshi: number;
-                if (libav.f64toi64) {
-                    [pts, ptshi] = libav.f64toi64(ptsFull);
-                } else {
-                    pts = ~~ptsFull;
-                    ptshi = Math.floor(ptsFull / 0x100000000);
-                }
+                const [pts, ptshi] = libav.f64toi64(ptsFull);
                 const packet: LibAVJS.Packet = {
                     data: chunk._libavGetData(),
                     pts,
@@ -322,12 +316,7 @@ export class VideoDecoder extends et.DequeueEventTarget {
             }
 
             // 3. timestamp
-            let timestamp: number;
-            if (libav.i64tof64)
-                timestamp = libav.i64tof64(frame.pts, frame.ptshi);
-            else
-                timestamp = frame.ptshi * 0x100000000 + frame.pts;
-            timestamp *= 1000;
+            const timestamp = libav.i64tof64(frame.pts, frame.ptshi) * 1000;
 
             const data = new vf.VideoFrame(frame.data, {
                 layout: frame.layout,

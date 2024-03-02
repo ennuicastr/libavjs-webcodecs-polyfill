@@ -302,13 +302,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
 
                 // Convert the timestamp
                 const ptsFull = Math.floor(dataClone.timestamp / 1000);
-                let pts: number, ptshi: number;
-                if (libav.f64toi64) {
-                    [pts, ptshi] = libav.f64toi64(ptsFull);
-                } else {
-                    pts = ~~ptsFull;
-                    ptshi = Math.floor(ptsFull / 0x100000000);
-                }
+                const [pts, ptshi] = libav.f64toi64(ptsFull);
 
                 // Convert the channel layout
                 const cc = dataClone.numberOfChannels;
@@ -448,11 +442,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
                 (packet.flags & 1) ? "key" : "delta";
 
             // 2. timestamp
-            let timestamp: number;
-            if (libav.i64tof64)
-                timestamp = libav.i64tof64(packet.pts, packet.ptshi);
-            else
-                timestamp = packet.ptshi * 0x100000000 + packet.pts;
+            let timestamp = libav.i64tof64(packet.pts, packet.ptshi);
             timestamp = Math.floor(timestamp / sampleRate * 1000000);
 
             const chunk = new eac.EncodedAudioChunk({

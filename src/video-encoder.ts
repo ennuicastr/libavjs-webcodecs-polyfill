@@ -308,13 +308,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
 
                 // Convert the timestamp
                 const ptsFull = Math.floor(frameClone.timestamp / 1000);
-                let pts: number, ptshi: number;
-                if (libav.f64toi64) {
-                    [pts, ptshi] = libav.f64toi64(ptsFull);
-                } else {
-                    pts = ~~ptsFull;
-                    ptshi = Math.floor(ptsFull / 0x100000000);
-                }
+                const [pts, ptshi] = libav.f64toi64(ptsFull);
 
                 // Make the frame
                 const frame: LibAVJS.Frame = {
@@ -459,12 +453,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
                 (packet.flags & 1) ? "key" : "delta";
 
             // 2. timestamp
-            let timestamp: number;
-            if (libav.i64tof64)
-                timestamp = libav.i64tof64(packet.pts, packet.ptshi);
-            else
-                timestamp = packet.ptshi * 0x100000000 + packet.pts;
-            timestamp *= 1000;
+            const timestamp = libav.i64tof64(packet.pts, packet.ptshi) * 1000;
 
             const chunk = new evc.EncodedVideoChunk({
                 type: <any> type, timestamp,
