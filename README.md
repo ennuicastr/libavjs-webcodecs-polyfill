@@ -70,9 +70,9 @@ LibAVJS-WebCodecs-Polyfill, then `drawImage` itself will also support
 
 ## Compatibility
 
-LibAVJS-WebCodecs-Polyfill should be up to date with the 2024-02-28 working
+LibAVJS-WebCodecs-Polyfill should be up to date with the 2024-02-29 working
 draft of the WebCodecs specification:
-https://www.w3.org/TR/2024/WD-webcodecs-20240228/
+https://www.w3.org/TR/2024/WD-webcodecs-20240229/
 
 Video support in LibAVJS-WebCodecs-Polyfill requires libav.js 5.1.6 or later.
 Audio support should work with libav.js 4.8.6 or later, but is of course usually

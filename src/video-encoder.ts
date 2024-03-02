@@ -266,47 +266,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
             try {
 
                 // Convert the format
-                let format: number;
-                switch (frameClone.format) {
-                    case "I420":
-                        format = libav.AV_PIX_FMT_YUV420P;
-                        break;
-
-                    case "I420A":
-                        format = libav.AV_PIX_FMT_YUVA420P;
-                        break;
-
-                    case "I422":
-                        format = libav.AV_PIX_FMT_YUV422P;
-                        break;
-
-                    case "I444":
-                        format = libav.AV_PIX_FMT_YUV444P;
-                        break;
-
-                    case "NV12":
-                        format = libav.AV_PIX_FMT_NV12;
-                        break;
-
-                    case "RGBA":
-                        format = libav.AV_PIX_FMT_RGBA;
-                        break;
-
-                    case "RGBX":
-                        format = 0x77; // AV_PIX_FMT_RGB0
-                        break;
-
-                    case "BGRA":
-                        format = libav.AV_PIX_FMT_BGRA;
-                        break;
-
-                    case "BGRX":
-                        format = 0x79; // AV_PIX_FMT_BGR0
-                        break;
-
-                    default:
-                        throw new TypeError("Invalid VideoPixelFormat");
-                }
+                const format = vf.wcFormatToLibAVFormat(libav, frameClone.format);
 
                 // Convert the data
                 const rawU8 = frameClone._libavGetData();

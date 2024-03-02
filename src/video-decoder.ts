@@ -268,41 +268,28 @@ export class VideoDecoder extends et.DequeueEventTarget {
             // 1. format
             let format: vf.VideoPixelFormat;
             switch (frame.format) {
-                case libav.AV_PIX_FMT_YUV420P:
-                    format = "I420";
-                    break;
-
-                case libav.AV_PIX_FMT_YUVA420P:
-                    format = "I420A";
-                    break;
-
-                case libav.AV_PIX_FMT_YUV422P:
-                    format = "I422";
-                    break;
-
-                case libav.AV_PIX_FMT_YUV444P:
-                    format = "I444";
-                    break;
-
-                case libav.AV_PIX_FMT_NV12:
-                    format = "NV12";
-                    break;
-
-                case libav.AV_PIX_FMT_RGBA:
-                    format = "RGBA";
-                    break;
-
-                case 0x77: // AV_PIX_FMT_RGB0
-                    format = "RGBX";
-                    break;
-
-                case libav.AV_PIX_FMT_BGRA:
-                    format = "BGRA";
-                    break;
-
-                case 0x79: // AV_PIX_FMT_BGR0
-                    format = "BGRX";
-                    break;
+                case libav.AV_PIX_FMT_YUV420P: format = "I420"; break;
+                case 0x3E: /* AV_PIX_FMT_YUV420P10 */ format = "I420P10"; break;
+                case 0x7B: /* AV_PIX_FMT_YUV420P12 */ format = "I420P12"; break;
+                case libav.AV_PIX_FMT_YUVA420P: format = "I420A"; break;
+                case 0x57: /* AV_PIX_FMT_YUVA420P10 */ format = "I420AP10"; break;
+                case libav.AV_PIX_FMT_YUV422P: format = "I422"; break;
+                case 0x40: /* AV_PIX_FMT_YUV422P10 */ format = "I422P10"; break;
+                case 0x7F: /* AV_PIX_FMT_YUV422P12 */ format = "I422P12"; break;
+                case 0x4E: /* AV_PIX_FMT_YUVA422P */ format = "I422A"; break;
+                case 0x59: /* AV_PIX_FMT_YUVA422P10 */ format = "I422AP10"; break;
+                case 0xBA: /* AV_PIX_FMT_YUVA422P12 */ format = "I422AP12"; break;
+                case libav.AV_PIX_FMT_YUV444P: format = "I444"; break;
+                case 0x44: /* AV_PIX_FMT_YUV444P10 */ format = "I444P10"; break;
+                case 0x83: /* AV_PIX_FMT_YUV444P12 */ format = "I444P12"; break;
+                case 0x4F: /* AV_PIX_FMT_YUVA444P */ format = "I444A"; break;
+                case 0x5B: /* AV_PIX_FMT_YUVA444P10 */ format = "I444AP10"; break;
+                case 0xBC: /* AV_PIX_FMT_YUVA444P12 */ format = "I444AP12"; break;
+                case libav.AV_PIX_FMT_NV12: format = "NV12"; break;
+                case libav.AV_PIX_FMT_RGBA: format = "RGBA"; break;
+                case 0x77: /* AV_PIX_FMT_RGB0 */ format = "RGBX"; break;
+                case libav.AV_PIX_FMT_BGRA: format = "BGRA"; break;
+                case 0x79: /* AV_PIX_FMT_BGR0 */ format = "BGRX"; break;
 
                 default:
                     throw new DOMException("Unsupported libav format!", "EncodingError")

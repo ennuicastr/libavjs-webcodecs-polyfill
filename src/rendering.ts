@@ -122,44 +122,7 @@ export function canvasDrawImage(
     }
 
     // Convert the format to libav.js
-    let format: number = scalerSync.AV_PIX_FMT_RGBA;
-    switch (image.format) {
-        case "I420":
-            format = scalerSync.AV_PIX_FMT_YUV420P;
-            break;
-
-        case "I420A":
-            format = scalerSync.AV_PIX_FMT_YUVA420P;
-            break;
-
-        case "I422":
-            format = scalerSync.AV_PIX_FMT_YUV422P;
-            break;
-
-        case "I444":
-            format = scalerSync.AV_PIX_FMT_YUV444P;
-            break;
-
-        case "NV12":
-            format = scalerSync.AV_PIX_FMT_NV12;
-            break;
-
-        case "RGBA":
-            format = scalerSync.AV_PIX_FMT_RGBA;
-            break;
-
-        case "RGBX":
-            format = 0x77; // AV_PIX_FMT_RGB0
-            break;
-
-        case "BGRA":
-            format = scalerSync.AV_PIX_FMT_BGRA;
-            break;
-
-        case "BGRX":
-            format = 0x79; // AV_PIX_FMT_BGR0
-            break;
-    }
+    const format = vf.wcFormatToLibAVFormat(scalerSync, image.format);
 
     // Convert the frame synchronously
     const sctx = scalerSync.sws_getContext_sync(
@@ -256,44 +219,7 @@ export function createImageBitmap(
     }
 
     // Convert the format to libav.js
-    let format: number = scalerAsync.AV_PIX_FMT_RGBA;
-    switch (image.format) {
-        case "I420":
-            format = scalerAsync.AV_PIX_FMT_YUV420P;
-            break;
-
-        case "I420A":
-            format = scalerAsync.AV_PIX_FMT_YUVA420P;
-            break;
-
-        case "I422":
-            format = scalerAsync.AV_PIX_FMT_YUV422P;
-            break;
-
-        case "I444":
-            format = scalerAsync.AV_PIX_FMT_YUV444P;
-            break;
-
-        case "NV12":
-            format = scalerAsync.AV_PIX_FMT_NV12;
-            break;
-
-        case "RGBA":
-            format = scalerAsync.AV_PIX_FMT_RGBA;
-            break;
-
-        case "RGBX":
-            format = 0x77; // AV_PIX_FMT_RGB0
-            break;
-
-        case "BGRA":
-            format = scalerAsync.AV_PIX_FMT_BGRA;
-            break;
-
-        case "BGRX":
-            format = 0x79; // AV_PIX_FMT_BGR0
-            break;
-    }
+    const format = vf.wcFormatToLibAVFormat(scalerAsync, image.format);
 
     // Normalize arguments
     const dWidth =(typeof opts.resizeWidth === "number")

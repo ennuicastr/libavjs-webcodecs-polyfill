@@ -17,6 +17,8 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+import type * as LibAVJS from "@libav.js/variant-webm-vp9";
+
 // A canvas element used to convert CanvasImageSources to buffers
 let offscreenCanvas: HTMLCanvasElement | OffscreenCanvas | null = null;
 
@@ -883,22 +885,78 @@ export interface VideoFrameBufferInit {
 export type VideoPixelFormat =
     // 4:2:0 Y, U, V
     "I420" |
+    "I420P10" |
+    "I420P12" |
     // 4:2:0 Y, U, V, A
     "I420A" |
+    "I420AP10" |
+    "I420AP12" |
     // 4:2:2 Y, U, V
     "I422" |
+    "I422P10" |
+    "I422P12" |
+    // 4:2:2 Y, U, V, A
+    "I422A" |
+    "I422AP10" |
+    "I422AP12" |
     // 4:4:4 Y, U, V
     "I444" |
+    "I444P10" |
+    "I444P12" |
+    // 4:4:4 Y, U, V, A
+    "I444A" |
+    "I444AP10" |
+    "I444AP12" |
     // 4:2:0 Y, UV
     "NV12" |
-    // 32bpp RGBA
+    // 4:4:4 RGBA
     "RGBA" |
-    // 32bpp RGBX (opaque)
+    // 4:4:4 RGBX (opaque)
     "RGBX" |
-    // 32bpp BGRA
+    // 4:4:4 BGRA
     "BGRA" |
-    // 32bpp BGRX (opaque)
+    // 4:4:4 BGRX (opaque)
     "BGRX";
+
+/**
+ * Convert a WebCodecs pixel format to a libav pixel format.
+ * @param libav  LibAV instance for constants
+ * @param wcFormat  WebCodecs format
+ */
+export function wcFormatToLibAVFormat(libav: LibAVJS.LibAV, wcFormat: VideoPixelFormat) {
+    let format: number = libav.AV_PIX_FMT_RGBA;
+    switch (wcFormat) {
+        case "I420": format = libav.AV_PIX_FMT_YUV420P; break;
+        case "I420P10": format = 0x3E; /* AV_PIX_FMT_YUV420P10 */ break;
+        case "I420P12": format = 0x7B; /* AV_PIX_FMT_YUV420P12 */ break;
+        case "I420A": format = libav.AV_PIX_FMT_YUVA420P; break;
+        case "I420AP10": format = 0x57; /* AV_PIX_FMT_YUVA420P10 */ break;
+        case "I420AP12":
+            throw new TypeError("YUV420P12 is not supported by libav");
+            break;
+        case "I422": format = libav.AV_PIX_FMT_YUV422P; break;
+        case "I422P10": format = 0x40; /* AV_PIX_FMT_YUV422P10 */ break;
+        case "I422P12": format = 0x7F; /* AV_PIX_FMT_YUV422P12 */ break;
+        case "I422A": format = 0x4E; /* AV_PIX_FMT_YUVA422P */ break;
+        case "I422AP10": format = 0x59; /* AV_PIX_FMT_YUVA422P10 */ break;
+        case "I422AP10": format = 0xBA; /* AV_PIX_FMT_YUVA422P12 */ break;
+        case "I444": format = libav.AV_PIX_FMT_YUV444P; break;
+        case "I444P10": format = 0x44; /* AV_PIX_FMT_YUV444P10 */ break;
+        case "I444P12": format = 0x83; /* AV_PIX_FMT_YUV444P12 */ break;
+        case "I444A": format = 0x4F; /* AV_PIX_FMT_YUVA444P */ break;
+        case "I444AP10": format = 0x5B; /* AV_PIX_FMT_YUVA444P10 */ break;
+        case "I444AP12": format = 0xBC; /* AV_PIX_FMT_YUVA444P10 */ break;
+        case "NV12": format = libav.AV_PIX_FMT_NV12; break;
+        case "RGBA": format = libav.AV_PIX_FMT_RGBA; break;
+        case "RGBX": format = 0x77; /* AV_PIX_FMT_RGB0 */ break;
+        case "BGRA": format = libav.AV_PIX_FMT_BGRA; break;
+        case "BGRX": format = 0x79; /* AV_PIX_FMT_BGR0 */ break;
+
+        default:
+            throw new TypeError("Invalid VideoPixelFormat");
+    }
+    return format;
+}
 
 /**
  * Number of planes in the given format.
@@ -907,11 +965,25 @@ export type VideoPixelFormat =
 export function numPlanes(format: VideoPixelFormat) {
     switch (format) {
         case "I420":
+        case "I420P10":
+        case "I420P12":
         case "I422":
+        case "I422P10":
+        case "I422P12":
         case "I444":
+        case "I444P10":
+        case "I444P12":
             return 3;
 
         case "I420A":
+        case "I420AP10":
+        case "I420AP12":
+        case "I422A":
+        case "I422AP10":
+        case "I422AP12":
+        case "I444A":
+        case "I444AP10":
+        case "I444AP12":
             return 4;
 
         case "NV12":
@@ -938,8 +1010,26 @@ export function sampleBytes(format: VideoPixelFormat, planeIndex: number) {
         case "I420":
         case "I420A":
         case "I422":
+        case "I422A":
         case "I444":
+        case "I444A":
             return 1;
+
+        case "I420P10":
+        case "I420AP10":
+        case "I422P10":
+        case "I422AP10":
+        case "I444P10":
+        case "I444AP10":
+            return 10/8;
+
+        case "I420P12":
+        case "I420AP12":
+        case "I422P12":
+        case "I422AP12":
+        case "I444P12":
+        case "I444AP12":
+            return 12/8;
 
         case "NV12":
             if (planeIndex === 1)
@@ -970,18 +1060,31 @@ export function horizontalSubSamplingFactor(
     if (planeIndex === 0)
         return 1;
 
+    // Plane 3 (alpha if present) is always full
+    if (planeIndex === 3)
+        return 1;
+
     switch (format) {
         case "I420":
+        case "I420P10":
+        case "I420P12":
+        case "I420A":
+        case "I420AP10":
+        case "I420AP12":
         case "I422":
+        case "I422P10":
+        case "I422P12":
+        case "I422A":
+        case "I422AP10":
+        case "I422AP12":
             return 2;
 
-        case "I420A":
-            if (planeIndex === 3)
-                return 1;
-            else
-                return 2;
-
         case "I444":
+        case "I444P10":
+        case "I444P12":
+        case "I444A":
+        case "I444AP10":
+        case "I444AP12":
             return 1;
 
         case "NV12":
@@ -1010,18 +1113,31 @@ export function verticalSubSamplingFactor(
     if (planeIndex === 0)
         return 1;
 
+    // Plane 3 (alpha if present) is always full
+    if (planeIndex === 3)
+        return 1;
+
     switch (format) {
         case "I420":
+        case "I420P10":
+        case "I420P12":
+        case "I420A":
+        case "I420AP10":
+        case "I420AP12":
             return 2;
 
-        case "I420A":
-            if (planeIndex === 3)
-                return 1;
-            else
-                return 2;
-
         case "I422":
+        case "I422P10":
+        case "I422P12":
+        case "I422A":
+        case "I422AP10":
+        case "I422AP12":
         case "I444":
+        case "I444P10":
+        case "I444P12":
+        case "I444A":
+        case "I444AP10":
+        case "I444AP12":
             return 1;
 
         case "NV12":
