@@ -19,6 +19,8 @@
 
 import type * as LibAVJS from "@libav.js/variant-webm-vp9";
 
+import "@ungap/global-this";
+
 // A canvas element used to convert CanvasImageSources to buffers
 let offscreenCanvas: HTMLCanvasElement | OffscreenCanvas | null = null;
 
@@ -349,6 +351,54 @@ export class VideoFrame {
      * (Internal) If non-square pixels, the SAR (sample/pixel aspect ratio)
      */
     _sar_num: number; _sar_den: number;
+
+    /**
+     * Convert a polyfill VideoFrame to a native VideoFrame.
+     * @param opts  Conversion options
+     */
+    toNative(opts: {
+        /**
+         * Transfer the data, closing this VideoFrame.
+         */
+        transfer?: boolean
+    } = {}) {
+        const ret = new (<any> globalThis).VideoFrame(this._data, {
+            layout: this._layout,
+            format: this.format,
+            codedWidth: this.codedWidth,
+            codedHeight: this.codedHeight,
+            visibleRect: this.visibleRect,
+            displayWidth: this.displayWidth,
+            displayHeight: this.displayHeight,
+            duration: this.duration,
+            timestamp: this.timestamp,
+            transfer: opts.transfer ? [this._data.buffer] : []
+        });
+        if (opts.transfer)
+            this.close();
+        return ret;
+    }
+
+    /**
+     * Convert a native VideoFrame to a polyfill VideoFrame. WARNING: Inefficient,
+     * as the data cannot be transferred out.
+     * @param from  VideoFrame to copy in
+     */
+    static fromNative(from: any /* native VideoFrame */) {
+        const vf: VideoFrame = from;
+        const data = new Uint8Array(vf.allocationSize());
+        vf.copyTo(data);
+        return new VideoFrame(data, {
+            format: vf.format,
+            codedWidth: vf.codedWidth,
+            codedHeight: vf.codedHeight,
+            visibleRect: vf.visibleRect,
+            displayWidth: vf.displayWidth,
+            displayHeight: vf.displayHeight,
+            duration: vf.duration,
+            timestamp: vf.timestamp
+        });
+    }
 
     // Internal
     _libavGetData() { return this._data; }

@@ -41,16 +41,6 @@ loaded from a different origin. This will hurt both performance and
 responsiveness. That is, it is recommended that *either* you load libav.js
 yourself, *or* you use LibAVJS-WebCodecs-Polyfill in a Worker thread (or both!).
 
-You can use LibAVJS-WebCodecs-Polyfill along with a browser implementation of
-WebCodecs, but you cannot mix and match raw data objects from each (e.g.,
-`VideoFrame`s from a browser implementation of WebCodecs cannot be used in
-LibAV-WebCodecs-Polyfill and vice-versa). To make this practical,
-`LibAVWebCodecs.getXY(config)` (where `X` = `Video` or `Audio` and `Y` =
-`Encoder` or `Decoder`) are implemented, and will return a promise for an
-object with, e.g.  `VideoEncoder`, `EncodedVideoChunk`, and `VideoFrame` set to
-either WebCodecs' or LibAVJS-WebCodecs-Polyfill's version. The promise is
-rejected if the configuration is unsupported.
-
 For rendering, it is highly recommended that you use
 `LibAVWebCodecs.createImageBitmap` and draw the result on a canvas, rather than
 `LibAVWebCodecs.canvasDrawImage`, which is synchronous.
@@ -66,6 +56,30 @@ any image type, not just a `VideoFrame`; it will fall through to the original
 `drawImage` as needed. If you used the `polyfill` option while loading
 LibAVJS-WebCodecs-Polyfill, then `drawImage` itself will also support
 `VideoFrame`s.
+
+
+## Interaction with Browser WebCodecs
+
+You can use LibAVJS-WebCodecs-Polyfill along with a browser implementation of
+WebCodecs, but you cannot mix and match raw data objects from each (e.g.,
+`VideoFrame`s from a browser implementation of WebCodecs cannot be used in
+LibAV-WebCodecs-Polyfill and vice-versa).
+
+To make this practical, `LibAVWebCodecs.getXY(config)` (where `X` = `Video` or
+`Audio` and `Y` = `Encoder` or `Decoder`) are implemented, and will return a
+promise for an object with, e.g.  `VideoEncoder`, `EncodedVideoChunk`, and
+`VideoFrame` set to either WebCodecs' or LibAVJS-WebCodecs-Polyfill's version.
+The promise is rejected if the configuration is unsupported.
+
+In addition, you can convert between the two using functions provided by the
+polyfill. If you have a polyfill AudioData `ad`, you can use `ad.toNative()` to
+convert it to a browser WebCodecs AudioData, and if you have a browser WebCodecs
+AudioData `ad`, you can use `LibAVWebCodecs.AudioData.fromNative(ad)`.
+Similarly, you can convert VideoFrames with `vf.toNative()` or
+`LibAVWebCodecs.VideoFrame.fromNative(vf)`.
+
+Converting involves extra copying, so is best avoided when possible. But,
+sometimes it's not possible.
 
 
 ## Compatibility

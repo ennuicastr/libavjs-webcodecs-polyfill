@@ -20,6 +20,8 @@
 // General type for audio typed arrays
 type AudioTypedArray = Uint8Array | Int16Array | Int32Array | Float32Array;
 
+import "@ungap/global-this";
+
 export class AudioData {
     constructor(init: AudioDataInit) {
         // 1. If init is not a valid AudioDataInit, throw a TypeError.
@@ -114,6 +116,61 @@ export class AudioData {
     readonly timestamp: number; // microseconds
 
     private _data: AudioTypedArray;
+
+    /**
+     * Convert a polyfill AudioData to a native AudioData.
+     * @param opts  Conversion options
+     */
+    toNative(opts: {
+        /**
+         * Transfer the data, closing this AudioData.
+         */
+        transfer?: boolean
+    } = {}) {
+        const ret = new (<any> globalThis).AudioData({
+            data: this._data,
+            format: this.format,
+            sampleRate: this.sampleRate,
+            numberOfFrames: this.numberOfFrames,
+            numberOfChannels: this.numberOfChannels,
+            timestamp: this.timestamp,
+            transfer: opts.transfer ? [this._data.buffer] : []
+        });
+        if (opts.transfer)
+            this.close();
+        return ret;
+    }
+
+    /**
+     * Convert a native AudioData to a polyfill AudioData. WARNING: Inefficient,
+     * as the data cannot be transferred out.
+     * @param from  AudioData to copy in
+     */
+    static fromNative(from: any /* native AudioData */) {
+        const ad: AudioData = from;
+        const isInterleaved_ = isInterleaved(ad.format);
+        const planes = isInterleaved_ ? 1 : ad.numberOfChannels;
+        const sizePerPlane = ad.allocationSize({
+            format: ad.format,
+            planeIndex: 0
+        });
+        const data = new Uint8Array(sizePerPlane);
+        for (let p = 0; p < planes; p++) {
+            ad.copyTo(data.subarray(p * sizePerPlane), {
+                format: ad.format,
+                planeIndex: p
+            });
+        }
+        return new AudioData({
+            data,
+            format: ad.format,
+            sampleRate: ad.sampleRate,
+            numberOfFrames: ad.numberOfFrames,
+            numberOfChannels: ad.numberOfChannels,
+            timestamp: ad.timestamp,
+            transfer: [data.buffer]
+        });
+    }
 
     // Internal
     _libavGetData() { return this._data; }
