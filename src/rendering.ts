@@ -121,8 +121,8 @@ export function canvasDrawImage(
     }
 
     if (typeof dWidth === "undefined") {
-        dWidth = image.codedWidth;
-        dHeight = image.codedHeight;
+        dWidth = image.displayWidth;
+        dHeight = image.displayHeight;
     }
 
     // Convert the format to libav.js
