@@ -130,7 +130,7 @@ export function canvasDrawImage(
 
     // Convert the frame synchronously
     const sctx = scalerSync!.sws_getContext_sync(
-        image.codedWidth, image.codedHeight, format,
+        image.visibleRect.width, image.visibleRect.height, format,
         dWidth, dHeight!, scalerSync!.AV_PIX_FMT_RGBA,
         2, 0, 0, 0
     );
@@ -154,7 +154,13 @@ export function canvasDrawImage(
         layout,
         format,
         width: image.codedWidth,
-        height: image.codedHeight
+        height: image.codedHeight,
+        crop: {
+            left: image.visibleRect.left,
+            right: image.visibleRect.right,
+            top: image.visibleRect.top,
+            bottom: image.visibleRect.bottom
+        }
     });
 
     // Rescale
@@ -235,54 +241,60 @@ export function createImageBitmap(
 
     // Convert the frame
     return (async () => {
-       const [sctx, inFrame, outFrame] = await Promise.all([
-           scalerAsync!.sws_getContext(
-               image.codedWidth, image.codedHeight, format,
-               dWidth, dHeight, scalerAsync!.AV_PIX_FMT_RGBA, 2, 0, 0, 0
-           ),
-           scalerAsync!.av_frame_alloc(),
-           scalerAsync!.av_frame_alloc()
-       ]);
+        const [sctx, inFrame, outFrame] = await Promise.all([
+            scalerAsync!.sws_getContext(
+                image.visibleRect.width, image.visibleRect.height, format,
+                dWidth, dHeight, scalerAsync!.AV_PIX_FMT_RGBA, 2, 0, 0, 0
+            ),
+            scalerAsync!.av_frame_alloc(),
+            scalerAsync!.av_frame_alloc()
+        ]);
 
-       // Convert the data
-       let rawU8: Uint8Array;
-       let layout: vf.PlaneLayout[] | undefined = void 0;
-       if (image._libavGetData) {
-           rawU8 = image._libavGetData();
-           layout = image._libavGetLayout();
-       } else if ((<any> image)._data) {
-           // Assume a VideoFrame weirdly serialized
-           rawU8 = (<any> image)._data;
-           layout = (<any> image)._layout;
-       } else {
-           rawU8 = new Uint8Array(image.allocationSize());
-           await image.copyTo(rawU8);
-       }
+        // Convert the data
+        let rawU8: Uint8Array;
+        let layout: vf.PlaneLayout[] | undefined = void 0;
+        if (image._libavGetData) {
+            rawU8 = image._libavGetData();
+            layout = image._libavGetLayout();
+        } else if ((<any> image)._data) {
+            // Assume a VideoFrame weirdly serialized
+            rawU8 = (<any> image)._data;
+            layout = (<any> image)._layout;
+        } else {
+            rawU8 = new Uint8Array(image.allocationSize());
+            await image.copyTo(rawU8);
+        }
 
-       // Copy it in
-       await scalerAsync!.ff_copyin_frame(inFrame, {
-           data: rawU8,
-           layout,
-           format,
-           width: image.codedWidth,
-           height: image.codedHeight
-       }),
+        // Copy it in
+        await scalerAsync!.ff_copyin_frame(inFrame, {
+            data: rawU8,
+            layout,
+            format,
+            width: image.codedWidth,
+            height: image.codedHeight,
+            crop: {
+                left: image.visibleRect.left,
+                right: image.visibleRect.right,
+                top: image.visibleRect.top,
+                bottom: image.visibleRect.bottom
+            }
+        }),
 
-       // Rescale
-       await scalerAsync!.sws_scale_frame(sctx, outFrame, inFrame);
+        // Rescale
+        await scalerAsync!.sws_scale_frame(sctx, outFrame, inFrame);
 
-       // Get the data back out again
-       const frameData =
-           await scalerAsync!.ff_copyout_frame_video_imagedata(outFrame);
+        // Get the data back out again
+        const frameData =
+            await scalerAsync!.ff_copyout_frame_video_imagedata(outFrame);
 
-       // And clean up
-       await Promise.all([
-           scalerAsync!.av_frame_free_js(outFrame),
-           scalerAsync!.av_frame_free_js(inFrame),
-           scalerAsync!.sws_freeContext(sctx)
-       ]);
+        // And clean up
+        await Promise.all([
+            scalerAsync!.av_frame_free_js(outFrame),
+            scalerAsync!.av_frame_free_js(inFrame),
+            scalerAsync!.sws_freeContext(sctx)
+        ]);
 
-       // Make the ImageBitmap
-       return await origCreateImageBitmap(frameData);
+        // Make the ImageBitmap
+        return await origCreateImageBitmap(frameData);
     })();
 }

@@ -282,6 +282,12 @@ export class VideoEncoder extends et.DequeueEventTarget {
                     format, pts, ptshi,
                     width: frameClone.codedWidth,
                     height: frameClone.codedHeight,
+                    crop: {
+                        left: frameClone.visibleRect.left,
+                        right: frameClone.visibleRect.right,
+                        top: frameClone.visibleRect.top,
+                        bottom: frameClone.visibleRect.bottom
+                    },
                     key_frame: options.keyFrame ? 1 : 0,
                     pict_type: options.keyFrame ? 1 : 0
                 };

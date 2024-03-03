@@ -299,6 +299,18 @@ export class VideoDecoder extends et.DequeueEventTarget {
             const codedWidth = frame.width!;
             const codedHeight = frame.height!;
 
+            // 3. cropping
+            let visibleRect: DOMRect;
+            if (frame.crop) {
+                visibleRect = new DOMRect(
+                    frame.crop.left, frame.crop.top,
+                    codedWidth - frame.crop.left - frame.crop.right,
+                    codedHeight - frame.crop.top - frame.crop.bottom
+                );
+            } else {
+                visibleRect = new DOMRect(0, 0, codedWidth, codedHeight);
+            }
+
             // Check for non-square pixels
             let displayWidth = codedWidth;
             let displayHeight = codedHeight;
@@ -315,7 +327,7 @@ export class VideoDecoder extends et.DequeueEventTarget {
 
             const data = new vf.VideoFrame(frame.data, {
                 layout: frame.layout,
-                format, codedWidth, codedHeight, displayWidth, displayHeight,
+                format, codedWidth, codedHeight, visibleRect, displayWidth, displayHeight,
                 timestamp
             });
 
