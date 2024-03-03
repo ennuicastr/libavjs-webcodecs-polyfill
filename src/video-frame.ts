@@ -1074,15 +1074,13 @@ export function sampleBytes(format: VideoPixelFormat, planeIndex: number) {
         case "I422AP10":
         case "I444P10":
         case "I444AP10":
-            return 10/8;
-
         case "I420P12":
         case "I420AP12":
         case "I422P12":
         case "I422AP12":
         case "I444P12":
         case "I444AP12":
-            return 12/8;
+            return 2;
 
         case "NV12":
             if (planeIndex === 1)
