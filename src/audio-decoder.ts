@@ -83,7 +83,7 @@ export class AudioDecoder extends et.DequeueEventTarget {
     private _p: Promise<unknown>;
 
     // LibAV state
-    private _libav: LibAVJS.LibAV;
+    private _libav: LibAVJS.LibAV | null;
     private _codec: number;
     private _c: number;
     private _pkt: number;
@@ -111,7 +111,7 @@ export class AudioDecoder extends et.DequeueEventTarget {
         this._p = this._p.then(async () => {
             /* 1. Let supported be the result of running the Check
              * Configuration Support algorithm with config. */
-            let udesc: Uint8Array;
+            let udesc: Uint8Array | undefined = void 0;
             if (config.description) {
                 if (ArrayBuffer.isView(config.description)) {
                     const descView = config.description as ArrayBufferView;
@@ -173,7 +173,7 @@ export class AudioDecoder extends et.DequeueEventTarget {
     // Our own algorithm, close libav
     private async _free() {
         if (this._c) {
-            await this._libav.ff_free_decoder(this._c, this._pkt, this._frame);
+            await this._libav!.ff_free_decoder(this._c, this._pkt, this._frame);
             this._codec = this._c = this._pkt = this._frame = 0;
         }
         if (this._libav) {
@@ -230,12 +230,12 @@ export class AudioDecoder extends et.DequeueEventTarget {
 
         // 4. Queue a control message to decode the chunk.
         this._p = this._p.then(async () => {
-            const libav = this._libav;
+            const libav = this._libav!;
             const c = this._c;
             const pkt = this._pkt;
             const frame = this._frame;
 
-            let decodedOutputs: LibAVJS.Frame[] = null;
+            let decodedOutputs: LibAVJS.Frame[] | null = null;
 
             // (1. and 2. relate to saturation)
 
@@ -266,7 +266,7 @@ export class AudioDecoder extends et.DequeueEventTarget {
              *    AudioDecoder algorithm with EncodingError and return. */
             } catch (ex) {
                 this._p = this._p.then(() => {
-                    this._closeAudioDecoder(ex);
+                    this._closeAudioDecoder(<DOMException> ex);
                 });
                 return;
             }
@@ -290,7 +290,7 @@ export class AudioDecoder extends et.DequeueEventTarget {
     }
 
     private _outputAudioData(outputs: LibAVJS.Frame[]) {
-        const libav = this._libav;
+        const libav = this._libav!;
 
         for (const frame of outputs) {
             // 1. format
@@ -338,16 +338,16 @@ export class AudioDecoder extends et.DequeueEventTarget {
             }
 
             // 2. sampleRate
-            const sampleRate = frame.sample_rate;
+            const sampleRate = frame.sample_rate!;
 
             // 3. numberOfFrames
-            const numberOfFrames = frame.nb_samples;
+            const numberOfFrames = frame.nb_samples!;
 
             // 4. numberOfChannels
-            const numberOfChannels = frame.channels;
+            const numberOfChannels = frame.channels!;
 
             // 5. timestamp
-            const timestamp = libav.i64tof64(frame.pts, frame.ptshi) * 1000;
+            const timestamp = libav.i64tof64(frame.pts!, frame.ptshi!) * 1000;
 
             // 6. data
             let raw: any;
@@ -396,18 +396,18 @@ export class AudioDecoder extends et.DequeueEventTarget {
                 return;
 
             // Make sure any last data is flushed
-            const libav = this._libav;
+            const libav = this._libav!;
             const c = this._c;
             const pkt = this._pkt;
             const frame = this._frame;
 
-            let decodedOutputs: LibAVJS.Frame[] = null;
+            let decodedOutputs: LibAVJS.Frame[] | null = null;
 
             try {
                 decodedOutputs = await libav.ff_decode_multi(c, pkt, frame, [], true);
             } catch (ex) {
                 this._p = this._p.then(() => {
-                    this._closeAudioDecoder(ex);
+                    this._closeAudioDecoder(<DOMException> ex);
                 });
             }
 

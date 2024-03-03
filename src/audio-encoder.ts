@@ -83,21 +83,21 @@ export class AudioEncoder extends et.DequeueEventTarget {
     private _error: misc.WebCodecsErrorCallback;
 
     // Metadata argument for output
-    private _outputMetadata: EncodedAudioChunkMetadata;
-    private _outputMetadataFilled: boolean;
+    private _outputMetadata: EncodedAudioChunkMetadata | null = null;
+    private _outputMetadataFilled: boolean = false;
 
     // Event queue
     private _p: Promise<unknown>;
 
     // LibAV state
-    private _libav: LibAVJS.LibAV;
+    private _libav: LibAVJS.LibAV | null;
     private _codec: number;
     private _c: number;
     private _frame: number;
     private _pkt: number;
-    private _pts: number;
-    private _filter_in_ctx: LibAVJS.FilterIOSettings;
-    private _filter_out_ctx: LibAVJS.FilterIOSettings;
+    private _pts: number = 0;
+    private _filter_in_ctx: LibAVJS.FilterIOSettings | null;
+    private _filter_out_ctx: LibAVJS.FilterIOSettings | null;
     private _filter_graph: number;
     private _buffersrc_ctx: number;
     private _buffersink_ctx: number;
@@ -152,13 +152,15 @@ export class AudioEncoder extends et.DequeueEventTarget {
             [self._codec, self._c, self._frame, self._pkt, frame_size] =
                 await libav.ff_init_encoder(supported.codec, supported);
             self._pts = 0;
-            await libav.AVCodecContext_time_base_s(self._c, 1, supported.ctx.sample_rate);
+            await libav.AVCodecContext_time_base_s(
+                self._c, 1, supported.ctx!.sample_rate!
+            );
 
             // Be ready to set up the filter
             self._filter_out_ctx = {
-                sample_rate: supported.ctx.sample_rate,
-                sample_fmt: supported.ctx.sample_fmt,
-                channel_layout: supported.ctx.channel_layout,
+                sample_rate: supported.ctx!.sample_rate,
+                sample_fmt: supported.ctx!.sample_fmt,
+                channel_layout: supported.ctx!.channel_layout,
                 frame_size
             };
 
@@ -173,13 +175,13 @@ export class AudioEncoder extends et.DequeueEventTarget {
     // Our own algorithm, close libav
     private async _free() {
         if (this._filter_graph) {
-            await this._libav.avfilter_graph_free_js(this._filter_graph);
+            await this._libav!.avfilter_graph_free_js(this._filter_graph);
             this._filter_in_ctx = this._filter_out_ctx = null;
             this._filter_graph = this._buffersrc_ctx = this._buffersink_ctx =
                 0;
         }
         if (this._c) {
-            await this._libav.ff_free_encoder(this._c, this._frame, this._pkt);
+            await this._libav!.ff_free_encoder(this._c, this._frame, this._pkt);
             this._codec = this._c = this._frame = this._pkt = 0;
         }
         if (this._libav) {
@@ -236,12 +238,12 @@ export class AudioEncoder extends et.DequeueEventTarget {
 
         // 5. Queue a control message to encode dataClone.
         this._p = this._p.then(async () => {
-            const libav = this._libav;
+            const libav = this._libav!;
             const c = this._c;
             const pkt = this._pkt;
             const framePtr = this._frame;
 
-            let encodedOutputs: LibAVJS.Packet[] = null;
+            let encodedOutputs: LibAVJS.Packet[] | null = null;
 
             /* 3. Decrement [[encodeQueueSize]] and run the Schedule Dequeue
              *    Event algorithm. */
@@ -316,7 +318,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
                 };
 
                 // Check if the filter needs to be reconfigured
-                let preOutputs: LibAVJS.Packet[] = null;
+                let preOutputs: LibAVJS.Packet[] | null = null;
                 if (this._filter_in_ctx) {
                     const filter_ctx = this._filter_in_ctx;
                     if (filter_ctx.sample_fmt !== frame.format ||
@@ -332,9 +334,9 @@ export class AudioEncoder extends et.DequeueEventTarget {
                                 // Planar
                                 frame_size = x.data[0].length;
                             } else {
-                                frame_size = x.data.length / x.channels;
+                                frame_size = x.data.length / x.channels!;
                             }
-                            return frame_size === this._filter_out_ctx.frame_size;
+                            return frame_size === this._filter_out_ctx!.frame_size;
                         });
 
                         if (fframes.length) {
@@ -352,13 +354,13 @@ export class AudioEncoder extends et.DequeueEventTarget {
                 // Set up the filter
                 if (!this._filter_graph) {
                     const filter_ctx = this._filter_in_ctx = {
-                        sample_rate: frame.sample_rate,
+                        sample_rate: frame.sample_rate!,
                         sample_fmt: frame.format,
-                        channel_layout: frame.channel_layout
+                        channel_layout: frame.channel_layout!
                     };
                     [this._filter_graph, this._buffersrc_ctx, this._buffersink_ctx] =
                         await libav.ff_init_filter_graph("aresample", filter_ctx,
-                            this._filter_out_ctx);
+                            this._filter_out_ctx!);
                 }
 
                 // Filter
@@ -378,7 +380,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
              * EncodingError. */
             } catch (ex) {
                 this._p = this._p.then(() => {
-                    this._closeAudioEncoder(ex);
+                    this._closeAudioEncoder(<DOMException> ex);
                 });
             }
 
@@ -404,45 +406,45 @@ export class AudioEncoder extends et.DequeueEventTarget {
     // Internal: Filter the given audio
     private async _filter(frames: LibAVJS.Frame[], fin: boolean = false) {
         const fframes =
-            await this._libav.ff_filter_multi(this._buffersrc_ctx,
+            await this._libav!.ff_filter_multi(this._buffersrc_ctx,
                 this._buffersink_ctx, this._frame, frames, fin);
         for (const frame of fframes) {
             frame.pts = this._pts;
             frame.ptshi = 0;
-            this._pts += frame.nb_samples;
+            this._pts += frame.nb_samples!;
         }
         return fframes;
     }
 
     // Internal: Get output metadata
     private async _getOutputMetadata(frame: LibAVJS.Frame) {
-        const libav = this._libav;
+        const libav = this._libav!;
         const c = this._c;
         const extradataPtr = await libav.AVCodecContext_extradata(c);
         const extradata_size = await libav.AVCodecContext_extradata_size(c);
-        let extradata: Uint8Array = null;
+        let extradata: Uint8Array | null = null;
         if (extradataPtr && extradata_size)
             extradata = await libav.copyout_u8(extradataPtr, extradata_size);
 
-        this._outputMetadata.decoderConfig.sampleRate = frame.sample_rate;
-        this._outputMetadata.decoderConfig.numberOfChannels = frame.channels;
+        this._outputMetadata!.decoderConfig.sampleRate = frame.sample_rate!;
+        this._outputMetadata!.decoderConfig.numberOfChannels = frame.channels!;
         if (extradata)
-            this._outputMetadata.decoderConfig.description = extradata;
+            this._outputMetadata!.decoderConfig.description = extradata;
 
         this._outputMetadataFilled = true;
     }
 
     private _outputEncodedAudioChunks(packets: LibAVJS.Packet[]) {
-        const libav = this._libav;
-        const sampleRate = this._filter_out_ctx.sample_rate;
+        const libav = this._libav!;
+        const sampleRate = this._filter_out_ctx!.sample_rate!;
 
         for (const packet of packets) {
             // 1. type
             const type: eac.EncodedAudioChunkType =
-                (packet.flags & 1) ? "key" : "delta";
+                (packet.flags! & 1) ? "key" : "delta";
 
             // 2. timestamp
-            let timestamp = libav.i64tof64(packet.pts, packet.ptshi);
+            let timestamp = libav.i64tof64(packet.pts!, packet.ptshi!);
             timestamp = Math.floor(timestamp / sampleRate * 1000000);
 
             const chunk = new eac.EncodedAudioChunk({
@@ -451,7 +453,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
             });
 
             if (this._outputMetadataFilled)
-                this._output(chunk, this._outputMetadata);
+                this._output(chunk, this._outputMetadata || void 0);
             else
                 this._output(chunk);
         }
@@ -476,17 +478,17 @@ export class AudioEncoder extends et.DequeueEventTarget {
              *    outputs. */
 
             // Make sure any last data is flushed
-            const libav = this._libav;
+            const libav = this._libav!;
             const c = this._c;
             const frame = this._frame;
             const pkt = this._pkt;
             const buffersrc_ctx = this._buffersrc_ctx;
             const buffersink_ctx = this._buffersink_ctx;
 
-            let encodedOutputs: LibAVJS.Packet[] = null;
+            let encodedOutputs: LibAVJS.Packet[] | null = null;
 
             try {
-                let fframes: LibAVJS.Frame[] = null;
+                let fframes: LibAVJS.Frame[] | null = null;
                 if (buffersrc_ctx)
                     fframes = await this._filter([], true);
                 encodedOutputs =
@@ -496,7 +498,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
                     await this._getOutputMetadata(fframes[0]);
             } catch (ex) {
                 this._p = this._p.then(() => {
-                    this._closeAudioEncoder(ex);
+                    this._closeAudioEncoder(<DOMException> ex);
                 });
             }
 

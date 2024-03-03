@@ -88,25 +88,25 @@ export class VideoEncoder extends et.DequeueEventTarget {
     private _p: Promise<unknown>;
 
     // LibAV state
-    private _libav: LibAVJS.LibAV;
+    private _libav: LibAVJS.LibAV | null;
     private _codec: number;
     private _c: number;
     private _frame: number;
     private _pkt: number;
-    private _extradataSet: boolean;
-    private _extradata: Uint8Array;
+    private _extradataSet: boolean = false;
+    private _extradata: Uint8Array | null = null;
     private _metadata: EncodedVideoChunkMetadata | null;
 
     // Software scaler state, if used
-    private _sws: number;
-    private _swsFrame: number;
-    private _swsIn: SWScaleState;
-    private _swsOut: SWScaleState;
+    private _sws?: number;
+    private _swsFrame?: number;
+    private _swsIn?: SWScaleState;
+    private _swsOut?: SWScaleState;
 
     // If our output uses non-square pixels, that information
-    private _nonSquarePixels: boolean;
-    private _sar_num: number;
-    private _sar_den: number;
+    private _nonSquarePixels: boolean = false;
+    private _sar_num: number = 1;
+    private _sar_den: number = 1;
 
     configure(config: VideoEncoderConfig): void {
         // 1. If config is not a valid VideoEncoderConfig, throw a TypeError.
@@ -161,7 +161,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
             this._swsFrame = 0;
             this._swsOut = {
                 width, height,
-                format: supported.ctx.pix_fmt
+                format: supported.ctx!.pix_fmt!
             };
 
             // Check for non-square pixels
@@ -185,13 +185,13 @@ export class VideoEncoder extends et.DequeueEventTarget {
     // Our own algorithm, close libav
     private async _free() {
         if (this._sws) {
-            await this._libav.av_frame_free_js(this._swsFrame);
-            await this._libav.sws_freeContext(this._sws);
+            await this._libav!.av_frame_free_js(this._swsFrame!);
+            await this._libav!.sws_freeContext(this._sws);
             this._sws = this._swsFrame = 0;
-            this._swsIn = this._swsOut = null;
+            this._swsIn = this._swsOut = void 0;
         }
         if (this._c) {
-            await this._libav.ff_free_encoder(this._c, this._frame, this._pkt);
+            await this._libav!.ff_free_encoder(this._c, this._frame, this._pkt);
             this._codec = this._c = this._frame = this._pkt = 0;
         }
         if (this._libav) {
@@ -248,13 +248,13 @@ export class VideoEncoder extends et.DequeueEventTarget {
 
         // 5. Queue a control message to encode frameClone.
         this._p = this._p.then(async () => {
-            const libav = this._libav;
+            const libav = this._libav!;
             const c = this._c;
             const pkt = this._pkt;
             const framePtr = this._frame;
-            const swsOut = this._swsOut;
+            const swsOut = this._swsOut!;
 
-            let encodedOutputs: LibAVJS.Packet[] = null;
+            let encodedOutputs: LibAVJS.Packet[] | null = null;
 
             /* 3. Decrement [[encodeQueueSize]] and run the Schedule Dequeue
              *    Event algorithm. */
@@ -298,8 +298,8 @@ export class VideoEncoder extends et.DequeueEventTarget {
                     }
 
                     // Need a scaler
-                    let sws = this._sws, swsIn = this._swsIn,
-                        swsFrame = this._swsFrame;
+                    let sws = this._sws, swsIn = this._swsIn!,
+                        swsFrame = this._swsFrame!;
                     if (!sws ||
                         frame.width !== swsIn.width ||
                         frame.height !== swsIn.height ||
@@ -308,8 +308,8 @@ export class VideoEncoder extends et.DequeueEventTarget {
                         if (sws)
                             await libav.sws_freeContext(sws);
                         swsIn = {
-                            width: frame.width,
-                            height: frame.height,
+                            width: frame.width!,
+                            height: frame.height!,
                             format: frame.format
                         };
                         sws = await libav.sws_getContext(
@@ -374,7 +374,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
              *    Close VideoEncoder algorithm with EncodingError and return. */
             } catch (ex) {
                 this._p = this._p.then(() => {
-                    this._closeVideoEncoder(ex);
+                    this._closeVideoEncoder(<DOMException> ex);
                 });
                 return;
             }
@@ -399,27 +399,27 @@ export class VideoEncoder extends et.DequeueEventTarget {
 
     // Internal: Get extradata
     private async _getExtradata() {
-        const libav = this._libav;
+        const libav = this._libav!;
         const c = this._c;
         const extradata = await libav.AVCodecContext_extradata(c);
         const extradata_size = await libav.AVCodecContext_extradata_size(c);
         if (extradata && extradata_size) {
-            this._metadata.decoderConfig.description = this._extradata =
+            this._metadata!.decoderConfig!.description = this._extradata =
                 await libav.copyout_u8(extradata, extradata_size);
         }
         this._extradataSet = true;
     }
 
     private _outputEncodedVideoChunks(packets: LibAVJS.Packet[]) {
-        const libav = this._libav;
+        const libav = this._libav!;
 
         for (const packet of packets) {
             // 1. type
             const type: evc.EncodedVideoChunkType =
-                (packet.flags & 1) ? "key" : "delta";
+                (packet.flags! & 1) ? "key" : "delta";
 
             // 2. timestamp
-            const timestamp = libav.i64tof64(packet.pts, packet.ptshi) * 1000;
+            const timestamp = libav.i64tof64(packet.pts!, packet.ptshi!) * 1000;
 
             const chunk = new evc.EncodedVideoChunk({
                 type: <any> type, timestamp,
@@ -427,7 +427,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
             });
 
             if (this._extradataSet)
-                this._output(chunk, this._metadata);
+                this._output(chunk, this._metadata || void 0);
             else
                 this._output(chunk);
         }
@@ -450,12 +450,12 @@ export class VideoEncoder extends et.DequeueEventTarget {
                 return;
 
             // Make sure any last data is flushed
-            const libav = this._libav;
+            const libav = this._libav!;
             const c = this._c;
             const frame = this._frame;
             const pkt = this._pkt;
 
-            let encodedOutputs: LibAVJS.Packet[] = null;
+            let encodedOutputs: LibAVJS.Packet[] | null = null;
 
             try {
                 encodedOutputs =
@@ -464,7 +464,7 @@ export class VideoEncoder extends et.DequeueEventTarget {
                     await this._getExtradata();
             } catch (ex) {
                 this._p = this._p.then(() => {
-                    this._closeVideoEncoder(ex);
+                    this._closeVideoEncoder(<DOMException> ex);
                 });
             }
 

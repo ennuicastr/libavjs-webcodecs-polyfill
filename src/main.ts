@@ -52,14 +52,14 @@ export async function load(options: {
         Object.assign(libavOptions, options.libavOptions);
 
     // Maybe load libav
-    if (!options.LibAV && typeof globalThis.LibAV === "undefined") {
+    if (!options.LibAV && typeof (<any> globalThis).LibAV === "undefined") {
         await new Promise<unknown>((res, rej) => {
             // Can't load workers from another origin
             libavOptions.noworker = true;
 
             // Load libav
             const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-webm-vp9@5.1.6/dist";
-            globalThis.LibAV = {base: libavBase};
+            (<any> globalThis).LibAV = {base: libavBase};
             const libavVar = "libav-5.1.6.1.1-webm-vp9.js";
             if (typeof importScripts !== "undefined") {
                 importScripts(`${libavBase}/${libavVar}`);
@@ -81,12 +81,18 @@ export async function load(options: {
     await libav.load();
 
     if (options.polyfill) {
-        for (const exp of [
-            "EncodedAudioChunk", "AudioData", "AudioDecoder", "AudioEncoder",
-            "EncodedVideoChunk", "VideoFrame", "VideoDecoder", "VideoEncoder"
+        for (const exp of <[string, any][]> [
+            ["EncodedAudioChunk", eac.EncodedAudioChunk],
+            ["AudioData", ad.AudioData],
+            ["AudioDecoder", adec.AudioDecoder],
+            ["AudioEncoder", aenc.AudioEncoder],
+            ["EncodedVideoChunk", evc.EncodedVideoChunk],
+            ["VideoFrame", vf.VideoFrame],
+            ["VideoDecoder", vdec.VideoDecoder],
+            ["VideoEncoder", venc.VideoEncoder]
         ]) {
-            if (!(<any> globalThis)[exp])
-                (<any> globalThis)[exp] = (<any> this)[exp];
+            if (!(<any> globalThis)[exp[0]])
+                (<any> globalThis)[exp[0]] = exp[1];
         }
     }
 

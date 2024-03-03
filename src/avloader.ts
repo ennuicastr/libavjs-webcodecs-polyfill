@@ -3,7 +3,7 @@
  * interface implemented is derived from the W3C standard. No attribution is
  * required when using this library.
  *
- * Copyright (c) 2021-2023 Yahweasel
+ * Copyright (c) 2021-2024 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted.
@@ -21,7 +21,7 @@ import type * as LibAVJS from "@libav.js/variant-webm-vp9";
 declare let LibAV: LibAVJS.LibAVWrapper;
 
 // Wrapper function to use
-export let LibAVWrapper: LibAVJS.LibAVWrapper = null;
+export let LibAVWrapper: LibAVJS.LibAVWrapper | null = null;
 
 // Currently available libav instances
 const libavs: LibAVJS.LibAV[] = [];
@@ -32,12 +32,12 @@ let libavOptions: any = {};
 /**
  * Supported decoders.
  */
-export let decoders: string[] = null;
+export let decoders: string[] | null = null;
 
 /**
  * Supported encoders.
  */
-export let encoders: string[] = null;
+export let encoders: string[] | null = null;
 
 /**
  * libav.js-specific codec request, used to bypass the codec registry and use
@@ -68,8 +68,8 @@ export function setLibAVOptions(to: any) {
  */
 export async function get(): Promise<LibAVJS.LibAV> {
     if (libavs.length)
-        return libavs.shift();
-    return await LibAVWrapper.LibAV(libavOptions);
+        return libavs.shift()!;
+    return await LibAVWrapper!.LibAV(libavOptions);
 }
 
 /**
@@ -124,7 +124,7 @@ export async function load() {
  */
 export function decoder(
     codec: string | {libavjs: LibAVJSCodec}, config: any
-): LibAVJSCodec {
+): LibAVJSCodec | null {
     if (typeof codec === "string") {
         codec = codec.replace(/\..*/, "");
 
@@ -184,7 +184,7 @@ export function decoder(
         }
 
         // Check whether we actually support this codec
-        if (!(decoders.indexOf(codec) >= 0))
+        if (!(decoders!.indexOf(codec) >= 0))
             return null;
 
         return {codec: outCodec};
@@ -201,7 +201,7 @@ export function decoder(
  */
 export function encoder(
     codec: string | {libavjs: LibAVJSCodec}, config: any
-): LibAVJSCodec {
+): LibAVJSCodec | null {
     if (typeof codec === "string") {
         const codecParts = codec.split(".");
         codec = codecParts[0];
@@ -322,7 +322,7 @@ export function encoder(
         }
 
         // Check whether we actually support this codec
-        if (!(encoders.indexOf(codec) >= 0))
+        if (!(encoders!.indexOf(codec) >= 0))
             return null;
 
         if (video) {
@@ -400,7 +400,7 @@ function av1Advanced(codecParts: string[], ctx: LibAVJS.AVCodecContextProps) {
                 break;
 
             case "H":
-                if (ctx.level >= 8) {
+                if (ctx.level && ctx.level >= 8) {
                     // Valid but unsupported
                     return false;
                 } else {

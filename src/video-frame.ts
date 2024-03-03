@@ -103,7 +103,9 @@ export class VideoFrame {
         // 6. If parsedRect is an exception, return parsedRect.
         this.codedWidth = init.codedWidth; // (for _parseVisibleRect)
         this.codedHeight = init.codedHeight;
-        const parsedRect = this._parseVisibleRect(defaultRect, overrideRect);
+        const parsedRect = this._parseVisibleRect(
+            defaultRect, overrideRect || null
+        );
 
         // 7. Let optLayout be undefined.
         let optLayout: PlaneLayout[] | undefined = void 0;
@@ -122,7 +124,7 @@ export class VideoFrame {
         // 10. If combinedLayout is an exception, throw combinedLayout.
         this.format = init.format; // (needed for _computeLayoutAndAllocationSize)
         const combinedLayout = this._computeLayoutAndAllocationSize(
-            parsedRect, optLayout
+            parsedRect, optLayout || null
         );
 
         /* 11. If data.byteLength is less than combinedLayout’s allocationSize,
@@ -279,17 +281,17 @@ export class VideoFrame {
 
             /* 4. If init.displayWidth exists, assign it to [[display width]].
              *    Otherwise, assign [[visible width]] to [[display width]]. */
-            if ("displayWidth" in init)
+            if (typeof init.displayWidth === "number")
                 this.displayWidth = init.displayWidth;
             else
                 this.displayWidth = this.visibleRect.width;
 
             /* 5. If init.displayHeight exists, assign it to [[display height]].
              *    Otherwise, assign [[visible height]] to [[display height]]. */
-            if ("displayHeight" in init)
+            if (typeof init.displayHeight === "number")
                 this.displayHeight = init.displayHeight;
             else
-                this.displayHeight = init.displayHeight;
+                this.displayHeight = this.visibleRect.height;
 
             // Account for non-square pixels
             if (this.displayWidth !== this.visibleRect.width ||
@@ -300,6 +302,7 @@ export class VideoFrame {
                 this._sar_den = this.displayHeight * this.visibleRect.height;
             } else {
                 this._nonSquarePixels = false;
+                this._sar_num = this._sar_den = 1;
             }
 
             /* 6. Assign init’s timestamp and duration to [[timestamp]] and
@@ -328,29 +331,29 @@ export class VideoFrame {
 
     /* NOTE: These should all be readonly, but the constructor style above
      * doesn't work with that */
-    format: VideoPixelFormat;
-    codedWidth: number;
-    codedHeight: number;
-    codedRect: DOMRectReadOnly;
-    visibleRect: DOMRectReadOnly;
-    displayWidth: number;
-    displayHeight: number;
-    duration: number; // microseconds
-    timestamp: number; // microseconds
+    format: VideoPixelFormat = "I420";
+    codedWidth: number = 0;
+    codedHeight: number = 0;
+    codedRect: DOMRectReadOnly = <any> null;
+    visibleRect: DOMRectReadOnly = <any> null;
+    displayWidth: number = 0;
+    displayHeight: number = 0;
+    duration?: number; // microseconds
+    timestamp: number = 0; // microseconds
     colorSpace: VideoColorSpace;
 
-    private _layout: PlaneLayout[];
-    private _data: Uint8Array;
+    private _layout: PlaneLayout[] = <any> null;
+    private _data: Uint8Array = <any> null;
 
     /**
      * (Internal) Does this use non-square pixels?
      */
-    _nonSquarePixels: boolean;
+    _nonSquarePixels: boolean = false;
 
     /**
      * (Internal) If non-square pixels, the SAR (sample/pixel aspect ratio)
      */
-    _sar_num: number; _sar_den: number;
+    _sar_num: number = 1; _sar_den: number = 1;
 
     /**
      * Convert a polyfill VideoFrame to a native VideoFrame.
@@ -414,7 +417,7 @@ export class VideoFrame {
         if (init.visibleRect) {
         /* 2. If any attribute of visibleRect is negative or not finite, return
          *    false. */
-            const vr = init.visibleRect;
+            const vr = DOMRect.fromRect(init.visibleRect);
             if (vr.x < 0 || !Number.isFinite(vr.x) ||
                 vr.y < 0 || !Number.isFinite(vr.y) ||
                 vr.width < 0 || !Number.isFinite(vr.width) ||
@@ -477,7 +480,7 @@ export class VideoFrame {
 
         // 2. Let overrideRect be undefined.
         // 3. If options.rect exists, assign its value to overrideRect.
-        let overrideRect: DOMRectReadOnly = options.rect ?
+        let overrideRect: DOMRectReadOnly | null = options.rect ?
             new DOMRect(options.rect.x, options.rect.y, options.rect.width,
                 options.rect.height)
             : null;
@@ -512,7 +515,7 @@ export class VideoFrame {
     }
 
     private _parseVisibleRect(
-        defaultRect: DOMRectReadOnly, overrideRect: DOMRectReadOnly
+        defaultRect: DOMRectReadOnly, overrideRect: DOMRectReadOnly | null
     ) {
         // 1. Let sourceRect be defaultRect
         let sourceRect = defaultRect;
@@ -551,7 +554,7 @@ export class VideoFrame {
     }
 
     private _computeLayoutAndAllocationSize(
-        parsedRect: DOMRectReadOnly, layout: PlaneLayout[]
+        parsedRect: DOMRectReadOnly, layout: PlaneLayout[] | null
     ) {
         // 1. Let numPlanes be the number of planes as defined by format.
         let numPlanes_ = numPlanes(this.format);
@@ -884,7 +887,7 @@ export class VideoFrame {
     }
 
     close(): void {
-        this._data = null;
+        this._data = <Uint8Array> <any> null;
     }
 }
 

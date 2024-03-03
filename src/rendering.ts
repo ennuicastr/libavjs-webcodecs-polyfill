@@ -23,13 +23,11 @@ import '@ungap/global-this';
 
 import type * as LibAVJS from "@libav.js/variant-webm-vp9";
 
-/* A non-threaded libav.js instance for scaling. This is an any because the
- * type definitions only expose the async versions, but this API requires the
- * _sync methods. */
-let scalerSync: any = null;
+// A non-threaded libav.js instance for scaling.
+let scalerSync: (LibAVJS.LibAV & LibAVJS.LibAVSync) | null = null;
 
 // A synchronous libav.js instance for scaling.
-let scalerAsync: LibAVJS.LibAV = null;
+let scalerAsync: LibAVJS.LibAV | null = null;
 
 // The original drawImage
 let origDrawImage: any = null;
@@ -51,8 +49,8 @@ export async function load(libavOptions: any, polyfill: boolean) {
         // Make sure the worker code doesn't run
         (<any> libav.LibAVWrapper).nolibavworker = true;
     }
-    scalerSync = await libav.LibAVWrapper.LibAV({noworker: true});
-    scalerAsync = await libav.LibAVWrapper.LibAV(libavOptions);
+    scalerSync = await libav.LibAVWrapper!.LibAV({noworker: true});
+    scalerAsync = await libav.LibAVWrapper!.LibAV(libavOptions);
 
     // Polyfill drawImage
     if ('CanvasRenderingContext2D' in globalThis) {
@@ -86,33 +84,39 @@ export async function load(libavOptions: any, polyfill: boolean) {
  * @param dHeight  Destination height
  */
 export function canvasDrawImage(
-    ctx: CanvasRenderingContext2D, image: vf.VideoFrame, sx: number,
-    sy: number, sWidth?: number, sHeight?: number, dx?: number, dy?: number,
-    dWidth?: number, dHeight?: number
+    ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+    image: vf.VideoFrame, ax: number, ay: number, sWidth?: number,
+    sHeight?: number, dx?: number, dy?: number, dWidth?: number,
+    dHeight?: number
 ): void {
     if (!((<any> image)._data)) {
         // Just use the original
         return origDrawImage.apply(ctx, Array.prototype.slice.call(arguments, 1));
     }
 
+    let sx: number | undefined;
+    let sy: number | undefined;
+
     // Normalize the arguments
     if (typeof sWidth === "undefined") {
         // dx, dy
-        dx = sx;
-        dy = sy;
-        sx = void 0;
-        sy = void 0;
+        dx = ax;
+        dy = ay;
 
     } else if (typeof dx === "undefined") {
         // dx, dy, dWidth, dHeight
-        dx = sx;
-        dy = sy;
+        dx = ax;
+        dy = ay;
         dWidth = sWidth;
         dHeight = sHeight;
         sx = void 0;
         sy = void 0;
         sWidth = void 0;
         sHeight = void 0;
+
+    } else {
+        sx = ax;
+        sy = ay;
 
     }
 
@@ -122,16 +126,16 @@ export function canvasDrawImage(
     }
 
     // Convert the format to libav.js
-    const format = vf.wcFormatToLibAVFormat(scalerSync, image.format);
+    const format = vf.wcFormatToLibAVFormat(scalerSync!, image.format);
 
     // Convert the frame synchronously
-    const sctx = scalerSync.sws_getContext_sync(
+    const sctx = scalerSync!.sws_getContext_sync(
         image.codedWidth, image.codedHeight, format,
-        dWidth, dHeight, scalerSync.AV_PIX_FMT_RGBA,
+        dWidth, dHeight!, scalerSync!.AV_PIX_FMT_RGBA,
         2, 0, 0, 0
     );
-    const inFrame = scalerSync.av_frame_alloc_sync();
-    const outFrame = scalerSync.av_frame_alloc_sync();
+    const inFrame = scalerSync!.av_frame_alloc_sync();
+    const outFrame = scalerSync!.av_frame_alloc_sync();
 
     let rawU8: Uint8Array;
     let layout: vf.PlaneLayout[];
@@ -145,7 +149,7 @@ export function canvasDrawImage(
     }
 
     // Copy it in
-    scalerSync.ff_copyin_frame_sync(inFrame, {
+    scalerSync!.ff_copyin_frame_sync(inFrame, {
         data: rawU8,
         layout,
         format,
@@ -154,24 +158,25 @@ export function canvasDrawImage(
     });
 
     // Rescale
-    scalerSync.sws_scale_frame_sync(sctx, outFrame, inFrame);
+    scalerSync!.sws_scale_frame_sync(sctx, outFrame, inFrame);
 
     // Get the data back out again
-    const frameData = scalerSync.ff_copyout_frame_video_imagedata_sync(outFrame);
+    const frameData = scalerSync!.ff_copyout_frame_video_imagedata_sync(outFrame);
 
     // Finally, draw it
-    ctx.putImageData(frameData, dx, dy);
+    ctx.putImageData(frameData, dx, dy!);
 
     // And clean up
-    scalerSync.av_frame_free_js_sync(outFrame);
-    scalerSync.av_frame_free_js_sync(inFrame);
-    scalerSync.sws_freeContext_sync(sctx);
+    scalerSync!.av_frame_free_js_sync(outFrame);
+    scalerSync!.av_frame_free_js_sync(inFrame);
+    scalerSync!.sws_freeContext_sync(sctx);
 }
 
 /**
  * Polyfill version of canvasDrawImage.
  */
 function drawImagePolyfill(
+    this: CanvasRenderingContext2D,
     image: vf.VideoFrame, sx: number, sy: number, sWidth?: number,
     sHeight?: number, dx?: number, dy?: number, dWidth?: number,
     dHeight?: number
@@ -188,6 +193,7 @@ function drawImagePolyfill(
  * Polyfill version of offscreenCanvasDrawImage.
  */
 function drawImagePolyfillOffscreen(
+    this: OffscreenCanvasRenderingContext2D,
     image: vf.VideoFrame, sx: number, sy: number, sWidth?: number,
     sHeight?: number, dx?: number, dy?: number, dWidth?: number,
     dHeight?: number
@@ -219,7 +225,7 @@ export function createImageBitmap(
     }
 
     // Convert the format to libav.js
-    const format = vf.wcFormatToLibAVFormat(scalerAsync, image.format);
+    const format = vf.wcFormatToLibAVFormat(scalerAsync!, image.format);
 
     // Normalize arguments
     const dWidth =(typeof opts.resizeWidth === "number")
@@ -230,12 +236,12 @@ export function createImageBitmap(
     // Convert the frame
     return (async () => {
        const [sctx, inFrame, outFrame] = await Promise.all([
-           scalerAsync.sws_getContext(
+           scalerAsync!.sws_getContext(
                image.codedWidth, image.codedHeight, format,
-               dWidth, dHeight, scalerAsync.AV_PIX_FMT_RGBA, 2, 0, 0, 0
+               dWidth, dHeight, scalerAsync!.AV_PIX_FMT_RGBA, 2, 0, 0, 0
            ),
-           scalerAsync.av_frame_alloc(),
-           scalerAsync.av_frame_alloc()
+           scalerAsync!.av_frame_alloc(),
+           scalerAsync!.av_frame_alloc()
        ]);
 
        // Convert the data
@@ -254,7 +260,7 @@ export function createImageBitmap(
        }
 
        // Copy it in
-       await scalerAsync.ff_copyin_frame(inFrame, {
+       await scalerAsync!.ff_copyin_frame(inFrame, {
            data: rawU8,
            layout,
            format,
@@ -263,17 +269,17 @@ export function createImageBitmap(
        }),
 
        // Rescale
-       await scalerAsync.sws_scale_frame(sctx, outFrame, inFrame);
+       await scalerAsync!.sws_scale_frame(sctx, outFrame, inFrame);
 
        // Get the data back out again
        const frameData =
-           await scalerAsync.ff_copyout_frame_video_imagedata(outFrame);
+           await scalerAsync!.ff_copyout_frame_video_imagedata(outFrame);
 
        // And clean up
        await Promise.all([
-           scalerAsync.av_frame_free_js(outFrame),
-           scalerAsync.av_frame_free_js(inFrame),
-           scalerAsync.sws_freeContext(sctx)
+           scalerAsync!.av_frame_free_js(outFrame),
+           scalerAsync!.av_frame_free_js(inFrame),
+           scalerAsync!.sws_freeContext(sctx)
        ]);
 
        // Make the ImageBitmap

@@ -281,7 +281,7 @@ export class AudioData {
         let copyFrameCount = frameCount - frameOffset;
 
         // 9. If options.frameCount exists:
-        if ("frameCount" in options) {
+        if (typeof options.frameCount === "number") {
             /* 1. If options.frameCount is greater than copyFrameCount, throw a
              * RangeError. */
             if (options.frameCount >= copyFrameCount)
@@ -423,7 +423,7 @@ export class AudioData {
     }
 
     close(): void {
-        this._data = null;
+        this._data = <Uint8Array> <any> null;
     }
 }
 
