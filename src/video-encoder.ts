@@ -555,7 +555,7 @@ export interface VideoEncoderConfig {
     hardwareAcceleration?: string; // Ignored, of course
     alpha?: string; // Ignored
     scalabilityMode?: string; // Ignored
-    BitrateMode?: string; // Ignored
+    bitrateMode?: string; // Ignored
     latencyMode?: LatencyMode;
 }
 
