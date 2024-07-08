@@ -95,7 +95,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
     private _c: number;
     private _frame: number;
     private _pkt: number;
-    private _pts: number = 0;
+    private _pts: number | null = null;
     private _filter_in_ctx: LibAVJS.FilterIOSettings | null;
     private _filter_out_ctx: LibAVJS.FilterIOSettings | null;
     private _filter_graph: number;
@@ -151,7 +151,7 @@ export class AudioEncoder extends et.DequeueEventTarget {
             let frame_size: number;
             [self._codec, self._c, self._frame, self._pkt, frame_size] =
                 await libav.ff_init_encoder(supported.codec, supported);
-            self._pts = 0;
+            self._pts = null;
             await libav.AVCodecContext_time_base_s(
                 self._c, 1, supported.ctx!.sample_rate!
             );
@@ -405,13 +405,22 @@ export class AudioEncoder extends et.DequeueEventTarget {
 
     // Internal: Filter the given audio
     private async _filter(frames: LibAVJS.Frame[], fin: boolean = false) {
+        /* The specification does not state how timestamps should be related
+         * between input and output. It's obvious that the timestamps should
+         * increase at the appropriate rate based on the number of samples seen,
+         * but where they should start is not stated. Google Chrome starts with
+         * the timestamp of the first input frame, and ignores all other input
+         * frame timestamps. We follow that convention as well. */
+        if (frames.length && this._pts === null)
+            this._pts = (frames[0].pts || 0);
+
         const fframes =
             await this._libav!.ff_filter_multi(this._buffersrc_ctx,
                 this._buffersink_ctx, this._frame, frames, fin);
         for (const frame of fframes) {
-            frame.pts = this._pts;
+            frame.pts = this._pts!;
             frame.ptshi = 0;
-            this._pts += frame.nb_samples!;
+            this._pts! += frame.nb_samples!;
         }
         return fframes;
     }
