@@ -67,7 +67,8 @@ export class VideoFrame {
 
         offscreenCanvas.width = width;
         offscreenCanvas.height = height;
-        const ctx = offscreenCanvas.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+        const options = { desynchronized: true, willReadFrequently: true } as CanvasRenderingContext2DSettings;
+        const ctx = offscreenCanvas.getContext("2d", options) as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
         ctx.clearRect(0, 0, width, height);
         ctx.drawImage(image, 0, 0);
         this._constructBuffer(ctx.getImageData(0, 0, width, height).data, {
