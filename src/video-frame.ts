@@ -26,16 +26,16 @@ let offscreenCanvas: HTMLCanvasElement | OffscreenCanvas | null = null;
 
 export class VideoFrame {
     constructor(data: CanvasImageSource | BufferSource,
-                init: VideoFrameInit | VideoFrameBufferInit) {
+                init?: VideoFrameInit | VideoFrameBufferInit) {
         if (data instanceof ArrayBuffer ||
             (<any> data).buffer instanceof ArrayBuffer) {
-            this._constructBuffer(<BufferSource> data, <VideoFrameBufferInit> init);
+            this._constructBuffer(<BufferSource> data, <VideoFrameBufferInit> init!);
         } else {
             this._constructCanvas(<CanvasImageSource> data, <VideoFrameInit> init);
         }
     }
 
-    private _constructCanvas(image: any, init: VideoFrameInit) {
+    private _constructCanvas(image: any, init?: VideoFrameInit) {
         /* The spec essentially re-specifies “draw it”, and has specific
          * instructions for each sort of thing it might be. So, we don't
          * document all the steps here, we just... draw it. */
@@ -75,11 +75,11 @@ export class VideoFrame {
             format: "RGBA",
             codedWidth: width,
             codedHeight: height,
-            timestamp: init.timestamp,
-            duration: init.duration || 0,
+            timestamp: init?.timestamp || 0,
+            duration: init?.duration || 0,
             layout: [{offset: 0, stride: width * 4}],
-            displayWidth: init.displayWidth || width,
-            displayHeight: init.displayHeight || height
+            displayWidth: init?.displayWidth || width,
+            displayHeight: init?.displayHeight || height
         });
     }
 
