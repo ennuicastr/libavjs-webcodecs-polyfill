@@ -37,7 +37,10 @@ export class VideoFrame {
             (<any>data).buffer instanceof ArrayBuffer) {
             this._constructBuffer(<BufferSource>data, <VideoFrameBufferInit>init);
 
-        } else if (data instanceof VideoFrame || data instanceof globalThis.VideoFrame) {
+        } else if (
+            data instanceof VideoFrame ||
+            (globalThis.VideoFrame && data instanceof globalThis.VideoFrame)
+        ) {
             const array = new Uint8Array(data.allocationSize());
             data.copyTo(array);
 
