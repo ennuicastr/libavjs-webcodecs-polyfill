@@ -25,14 +25,18 @@ import "@ungap/global-this";
 let offscreenCanvas: HTMLCanvasElement | OffscreenCanvas | null = null;
 
 export class VideoFrame {
-    constructor(data: HTMLVideoElement | VideoFrame, init?: VideoFrameInit)
-    constructor(data: CanvasImageSource, init: VideoFrameInit)
-    constructor(data: BufferSource, init: VideoFrameBufferInit)
-    constructor(data: CanvasImageSource | BufferSource | VideoFrame,
-        init?: VideoFrameInit | VideoFrameBufferInit) {
+    constructor(data: HTMLVideoElement | VideoFrame, init?: VideoFrameInit);
+    constructor(data: CanvasImageSource, init: VideoFrameInit);
+    constructor(data: BufferSource, init: VideoFrameBufferInit);
+    constructor(
+        data: CanvasImageSource | BufferSource | VideoFrame,
+        init?: VideoFrameInit | VideoFrameBufferInit
+    ) {
+
         if (data instanceof ArrayBuffer ||
             (<any>data).buffer instanceof ArrayBuffer) {
             this._constructBuffer(<BufferSource>data, <VideoFrameBufferInit>init);
+
         } else if (data instanceof VideoFrame || data instanceof globalThis.VideoFrame) {
             const array = new Uint8Array(data.allocationSize());
             data.copyTo(array);
@@ -40,29 +44,46 @@ export class VideoFrame {
             this._constructBuffer(array, <VideoFrameBufferInit> {
                 transfer: [array.buffer],
                 // 1. Let format be otherFrame.format.
-                // 2. FIXME: If init.alpha is discard, assign otherFrame.format's equivalent opaque format format.
+                /* 2. FIXME: If init.alpha is discard, assign
+                 * otherFrame.format's equivalent opaque format format. */
                 format: data.format,
-                // 3. Let validInit be the result of running the Validate VideoFrameInit algorithm with format and otherFrame’s [[coded width]] and [[coded height]].
+                /* 3. Let validInit be the result of running the Validate
+                 * VideoFrameInit algorithm with format and otherFrame’s
+                 * [[coded width]] and [[coded height]]. */
                 // 4. If validInit is false, throw a TypeError.
-                // 7. Assign the following attributes from otherFrame to frame: codedWidth, codedHeight, colorSpace.
+                /* 7. Assign the following attributes from otherFrame to frame:
+                 * codedWidth, codedHeight, colorSpace. */
                 codedHeight: data.codedHeight,
                 codedWidth: data.codedWidth,
                 colorSpace: data.colorSpace,
-                // 8. Let defaultVisibleRect be the result of performing the getter steps for visibleRect on otherFrame.
-                // 9. Let defaultDisplayWidth, and defaultDisplayHeight be otherFrame’s [[display width]], and [[display height]] respectively.
-                // 10. Run the Initialize Visible Rect and Display Size algorithm with init, frame, defaultVisibleRect, defaultDisplayWidth, and defaultDisplayHeight.
+                /* 8. Let defaultVisibleRect be the result of performing the
+                 * getter steps for visibleRect on otherFrame. */
+                /* 9. Let defaultDisplayWidth, and defaultDisplayHeight be
+                 * otherFrame’s [[display width]], and [[display height]]
+                 * respectively. */
+                /* 10. Run the Initialize Visible Rect and Display Size
+                 * algorithm with init, frame, defaultVisibleRect,
+                 * defaultDisplayWidth, and defaultDisplayHeight. */
                 visibleRect: init?.visibleRect || data.visibleRect,
                 displayHeight: init?.displayHeight || data.displayHeight,
                 displayWidth: init?.displayWidth || data.displayWidth,
-                // 11. If duration exists in init, assign it to frame’s [[duration]]. Otherwise, assign otherFrame.duration to frame’s [[duration]].
+                /* 11. If duration exists in init, assign it to frame’s
+                 * [[duration]]. Otherwise, assign otherFrame.duration to
+                 * frame’s [[duration]]. */
                 duration: init?.duration || data.duration,
-                // 12. If timestamp exists in init, assign it to frame’s [[timestamp]]. Otherwise, assign otherFrame’s timestamp to frame’s [[timestamp]].
+                /* 12. If timestamp exists in init, assign it to frame’s
+                 * [[timestamp]]. Otherwise, assign otherFrame’s timestamp to
+                 * frame’s [[timestamp]]. */
                 timestamp: init?.timestamp || data.timestamp,
-                // Assign the result of calling Copy VideoFrame metadata with init’s metadata to frame.[[metadata]].
+                /* Assign the result of calling Copy VideoFrame metadata with
+                 * init’s metadata to frame.[[metadata]]. */
                 metadata: JSON.parse(JSON.stringify(init?.metadata))
             });
+
         } else if (data instanceof HTMLVideoElement) {
-            // Check the usability of the image argument. If this throws an exception or returns bad, then throw an InvalidStateError DOMException.
+            /* Check the usability of the image argument. If this throws an
+             * exception or returns bad, then throw an InvalidStateError
+             * DOMException. */
             if (data.readyState === HTMLVideoElement.prototype.HAVE_NOTHING
                 || data.readyState === HTMLVideoElement.prototype.HAVE_METADATA) {
                 throw new DOMException("Video is not ready for reading frames", "InvalidStateError");
@@ -77,6 +98,7 @@ export class VideoFrame {
                 ...init,
                 timestamp: init?.timestamp || data.currentTime * 1e6,
             });
+
         } else {
             this._constructCanvas(<CanvasImageSource>data, <VideoFrameInit>init);
         }
