@@ -58,9 +58,9 @@ export async function load(options: {
             libavOptions.noworker = true;
 
             // Load libav
-            const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-webm-vp9@5.1.6/dist";
+            const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-webm-vp9@6.0.7/dist";
             (<any> globalThis).LibAV = {base: libavBase};
-            const libavVar = "libav-5.1.6.1.1-webm-vp9.js";
+            const libavVar = "libav-6.0.7.0.2-webm-vp9.js";
             if (typeof importScripts !== "undefined") {
                 importScripts(`${libavBase}/${libavVar}`);
                 res(void 0);
