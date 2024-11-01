@@ -6,7 +6,8 @@
   "types": "src/main.ts",
   "exports": {
     "import": "./dist/libavjs-webcodecs-polyfill.mjs",
-    "default": "./dist/libavjs-webcodecs-polyfill.js"
+    "default": "./dist/libavjs-webcodecs-polyfill.js",
+    "types": "./src/main.ts"
   },
   "scripts": {
     "build": "tsc && rollup -c",
