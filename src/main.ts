@@ -132,6 +132,7 @@ export type AudioEncoderSupport = aenc.AudioEncoderSupport;
 export type EncodedVideoChunk = evc.EncodedVideoChunk;
 export const EncodedVideoChunk = evc.EncodedVideoChunk;
 export type EncodedVideoChunkInit = evc.EncodedVideoChunkInit;
+export type EncodedVideoChunkType = evc.EncodedVideoChunkType;
 
 // VideoFrame
 export type VideoFrame = vf.VideoFrame;
