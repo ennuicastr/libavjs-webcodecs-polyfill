@@ -24,7 +24,7 @@ import * as misc from "./misc";
 import * as vd from "./video-decoder";
 import * as vf from "./video-frame";
 
-import type * as LibAVJS from "@libav.js/variant-webm-vp9";
+import type * as LibAVJS from "@libav.js/types";
 
 export class VideoEncoder extends et.DequeueEventTarget {
     constructor(init: VideoEncoderInit) {

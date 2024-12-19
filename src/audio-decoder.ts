@@ -23,7 +23,7 @@ import * as et from "./event-target";
 import * as libavs from "./avloader";
 import * as misc from "./misc";
 
-import type * as LibAVJS from "@libav.js/variant-webm-vp9";
+import type * as LibAVJS from "@libav.js/types";
 
 export class AudioDecoder extends et.DequeueEventTarget {
     constructor(init: AudioDecoderInit) {

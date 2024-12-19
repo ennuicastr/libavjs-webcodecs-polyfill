@@ -21,7 +21,7 @@ import * as libav from "./avloader";
 import * as vf from "./video-frame";
 import '@ungap/global-this';
 
-import type * as LibAVJS from "@libav.js/variant-webm-vp9";
+import type * as LibAVJS from "@libav.js/types";
 
 // A non-threaded libav.js instance for scaling.
 let scalerSync: (LibAVJS.LibAV & LibAVJS.LibAVSync) | null = null;

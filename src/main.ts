@@ -33,7 +33,7 @@ import * as config from "./config";
 import * as libav from "./avloader";
 import * as misc from "./misc";
 
-import type * as LibAVJS from "@libav.js/variant-webm-vp9";
+import type * as LibAVJS from "@libav.js/types";
 import '@ungap/global-this';
 
 declare let importScripts: any;
@@ -58,7 +58,7 @@ export async function load(options: {
             libavOptions.noworker = true;
 
             // Load libav
-            const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-webm-vp9@6.0.7/dist";
+            const libavBase = "https://cdn.jsdelivr.net/npm/@libav.js/variant-webm-vp9@6.5.7/dist";
             (<any> globalThis).LibAV = {base: libavBase};
             const libavVar = "libav-6.0.7.0.2-webm-vp9.js";
             if (typeof importScripts !== "undefined") {

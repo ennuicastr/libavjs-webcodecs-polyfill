@@ -23,7 +23,7 @@ import * as libavs from "./avloader";
 import * as misc from "./misc";
 import * as vf from "./video-frame";
 
-import * as LibAVJS from "@libav.js/variant-webm-vp9";
+import * as LibAVJS from "@libav.js/types";
 
 export class VideoDecoder extends et.DequeueEventTarget {
     constructor(init: VideoDecoderInit) {
