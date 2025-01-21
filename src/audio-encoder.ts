@@ -448,17 +448,26 @@ export class AudioEncoder extends et.DequeueEventTarget {
         const sampleRate = this._filter_out_ctx!.sample_rate!;
 
         for (const packet of packets) {
-            // 1. type
+            // 1. data
+            const data = packet.data
+            // 2. type
             const type: eac.EncodedAudioChunkType =
                 (packet.flags! & 1) ? "key" : "delta";
 
-            // 2. timestamp
+            // 3. timestamp
             let timestamp = libav.i64tof64(packet.pts!, packet.ptshi!);
             timestamp = Math.floor(timestamp / sampleRate * 1000000);
 
+            // 4. duration
+            let duration
+
+            if (packet.duration !== undefined && packet.durationhi !== undefined) {
+                duration = libav.i64tof64(packet.duration, packet.durationhi);
+                duration = Math.floor(duration / sampleRate * 1000000);
+            }
+
             const chunk = new eac.EncodedAudioChunk({
-                type, timestamp,
-                data: packet.data
+                data, type, timestamp, duration
             });
 
             if (this._outputMetadataFilled)
