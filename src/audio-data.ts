@@ -154,7 +154,7 @@ export class AudioData {
             format: ad.format,
             planeIndex: 0
         });
-        const data = new Uint8Array(sizePerPlane);
+        const data = new Uint8Array(sizePerPlane * planes);
         for (let p = 0; p < planes; p++) {
             ad.copyTo(data.subarray(p * sizePerPlane), {
                 format: ad.format,
