@@ -449,7 +449,8 @@ export class AudioEncoder extends et.DequeueEventTarget {
 
         for (const packet of packets) {
             // 1. data
-            const data = packet.data
+            const data = packet.data;
+
             // 2. type
             const type: eac.EncodedAudioChunkType =
                 (packet.flags! & 1) ? "key" : "delta";
@@ -459,10 +460,10 @@ export class AudioEncoder extends et.DequeueEventTarget {
             timestamp = Math.floor(timestamp / sampleRate * 1000000);
 
             // 4. duration
-            let duration
+            let duration: number | undefined;
 
-            if (packet.duration !== undefined && packet.durationhi !== undefined) {
-                duration = libav.i64tof64(packet.duration, packet.durationhi);
+            if (typeof packet.duration !== "undefined") {
+                duration = libav.i64tof64(packet.duration, packet.durationhi || 0);
                 duration = Math.floor(duration / sampleRate * 1000000);
             }
 
