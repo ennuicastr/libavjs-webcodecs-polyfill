@@ -40,7 +40,7 @@ let origCreateImageBitmap: any = null;
 
 /**
  * Load rendering capability.
- * @param libavOptions  Options to use while loading libav, only asynchronous
+ * @param libavOptions  Options to use while loading libav
  * @param polyfill  Set to polyfill CanvasRenderingContext2D.drawImage
  */
 export async function load(libavOptions: any, polyfill: boolean) {
@@ -49,7 +49,11 @@ export async function load(libavOptions: any, polyfill: boolean) {
         // Make sure the worker code doesn't run
         (<any> libav.LibAVWrapper).nolibavworker = true;
     }
-    scalerSync = await libav.LibAVWrapper!.LibAV({noworker: true});
+    scalerSync = <any> await libav.LibAVWrapper!.LibAV({
+        ...libavOptions,
+        noworker: true,
+        yesthreads: false
+    });
     scalerAsync = await libav.LibAVWrapper!.LibAV(libavOptions);
 
     // Polyfill drawImage
