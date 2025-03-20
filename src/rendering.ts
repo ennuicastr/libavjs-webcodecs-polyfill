@@ -49,7 +49,11 @@ export async function load(libavOptions: any, polyfill: boolean) {
         // Make sure the worker code doesn't run
         (<any> libav.LibAVWrapper).nolibavworker = true;
     }
-    scalerSync = await libav.LibAVWrapper!.LibAV({ ...libavOptions, noworker: true});
+    scalerSync = <any> await libav.LibAVWrapper!.LibAV({
+        ...libavOptions,
+        noworker: true,
+        yesthreads: false
+    });
     scalerAsync = await libav.LibAVWrapper!.LibAV(libavOptions);
 
     // Polyfill drawImage
